@@ -1,95 +1,158 @@
 import kotlinx.html.*
 import kotlinx.html.stream.createHTML
+import org.apache.commons.text.StringEscapeUtils
+import org.intellij.markdown.ast.ASTNode
 import org.intellij.markdown.flavours.commonmark.CommonMarkFlavourDescriptor
 import org.intellij.markdown.html.HtmlGenerator
 import org.intellij.markdown.parser.MarkdownParser
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 data class Entry(
+    val filePath: Path,
+    val urlPath: String,
     val title: String,
     val publishDate: String,
-    val body: String
+    val publishDateLocal: String,
+    val markdown: String,
+    val ast: ASTNode,
+    val html: String,
+    val body: String,
+    val summary: String = body.take(140) + "..."
 )
+
+fun convertToRssDateTimeFormat(dateTime: String, fromZoneId: ZoneId, toZoneId: ZoneId): String {
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+
+
+    val localDateTime = LocalDateTime.parse(dateTime, formatter)
+    val localZonedDateTime = localDateTime.atZone(fromZoneId)
+    val gmtZonedDateTime = localZonedDateTime.withZoneSameInstant(toZoneId)
+
+    val rssFormatter =
+        DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH)
+    return gmtZonedDateTime.format(rssFormatter)
+}
 
 fun main(args: Array<String>) {
     if (args.isEmpty()) {
-        println("Docs directory path is required.")
+        println("Usage: $ app documentRoot")
         return
     }
 
-    val docsDirPath = args[0]
-    val docsDir = File(docsDirPath)
+    val documentRootPath = args[0]
 
-    if (!docsDir.exists() || !docsDir.isDirectory) {
-        println("Invalid docs directory: $docsDirPath")
+    val documentRootDir = File(documentRootPath)
+    if (!documentRootDir.exists() || !documentRootDir.isDirectory) {
+        println("Invalid docs directory: $documentRootPath")
         return
     }
 
-    processDirectory(docsDir.toPath())
+    val docsRootDir = File(documentRootPath).resolve("entry")
+    if (!docsRootDir.exists() || !docsRootDir.isDirectory) {
+        println("Invalid docs directory: ${docsRootDir.toPath()}")
+        return
+    }
+
+    val entries = recursiveMarkdownFiles(documentRootDir.toPath(), docsRootDir.toPath())
+    createEntriesHtml(entries)
+
+    val indexEntries = entries.take(30)
+    createIndexHtml(documentRootDir.toPath(), indexEntries)
+    createRssXML(documentRootDir.toPath(), indexEntries)
 }
 
-fun processDirectory(dirPath: Path) {
+fun recursiveMarkdownFiles(rootDirPath: Path, dirPath: Path) : List<Entry> {
+    val entries = mutableListOf<Entry>()
     val indexMdFile = dirPath.resolve("index.md")
     if (Files.exists(indexMdFile)) {
-        val entry: Entry = loadMarkdown(indexMdFile)
-        createIndexHtml(dirPath, entry)
+        entries.add(loadMarkdown(rootDirPath, indexMdFile))
     }
 
     Files.list(dirPath)
         .sorted(reverseOrder())
         .filter { it.toFile().isDirectory }
-        .forEach { processDirectory(it) }
+        .forEach {
+            val childEntries = recursiveMarkdownFiles(rootDirPath, it)
+            entries.addAll(childEntries)
+        }
+
+    return entries
 }
 
 // TODO: 雑なのちゃんとしよう。。
-fun loadMarkdown(filePath: Path): Entry {
+fun loadMarkdown(rootDirPath: Path, filePath: Path): Entry {
     val lines = Files.readAllLines(filePath)
     val titleLine = lines.firstOrNull { it.startsWith("title: ") }
         ?: error("Error: Missing or malformed title in file $filePath")
     val dateLine = lines.firstOrNull { it.startsWith("date: ") }
         ?: error("Error: Missing or malformed date in file $filePath")
 
-    val title = titleLine.removePrefix("title: ").trim()
-    val date = dateLine.removePrefix("date: ").trim()
+    val title = titleLine.removePrefix("title: ").trim().ifBlank { "Untitled" }
+    val date = dateLine.removePrefix("date: ").trim().ifBlank { "UntitledDate" }
 
     val bodyStartIndex = lines.indexOfFirst { it.isBlank() }
     if (bodyStartIndex <= 0 || bodyStartIndex >= lines.size) {
         error("Error: Missing body content in file $filePath")
     }
-    val body = lines.drop(bodyStartIndex).joinToString("\n").trim()
+    val markdown = lines.drop(bodyStartIndex).joinToString("\n").trim()
 
-    return Entry(title, date, body)
+    // TODO: <body> タグ入れたくないからループ回してるの嫌な感じ
+    val flavour = CommonMarkFlavourDescriptor()
+    val parsedTree = MarkdownParser(flavour).buildMarkdownTreeFromString(markdown)
+    val html = parsedTree.children.map {
+        HtmlGenerator(markdown, it, flavour).generateHtml()
+    }.joinToString(separator = "") { it }
+    val body = stripHtml(html)
+
+    // make an absolute path
+    val urlPath = rootDirPath.relativize(filePath.parent).toString().replace(File.separatorChar, '/')
+
+    val localZoneId = ZoneId.of("Asia/Tokyo")
+    val gmtZoneId = ZoneId.of("GMT")
+
+    return Entry(filePath,
+        "/$urlPath/",
+        title,
+        convertToRssDateTimeFormat(date, localZoneId, gmtZoneId),
+        convertToRssDateTimeFormat(date, localZoneId, localZoneId),
+        markdown,
+        parsedTree,
+        html,
+        body)
 }
 
 
-fun createIndexHtml(dirPath: Path, entry: Entry) {
-    val indexHtml = dirPath.resolve("index.html")
+fun stripHtml(html: String): String {
+    return html.replace(Regex("<[^>]*>"), "").trim()
+}
 
-    val flavour = CommonMarkFlavourDescriptor()
-    val parsedTree = MarkdownParser(flavour).buildMarkdownTreeFromString(entry.body)
-    val entryTitle = entry.title.ifBlank { "Untitled" }
-    val publishDate = entry.publishDate.ifBlank { "UntitledDate" }
+fun createEntriesHtml(entries: List<Entry>) {
+    entries.forEach { createEntryHtml(it) }
+    println("Created ${entries.size} entries.")
+}
 
-    // TODO: <body> タグ入れたくないからループ回してるの嫌な感じ
-    val html = parsedTree.children.map {
-        HtmlGenerator(entry.body, it, flavour).generateHtml()
-    }.joinToString(separator = "") { it }
+fun createEntryHtml(entry: Entry) {
+    val indexHtml = entry.filePath.parent.resolve("index.html")
 
     val htmlContent = createHTML().html {
         lang = "en"
         head {
             meta { charset = "UTF-8" }
             meta { name = "viewport"; content = "width=device-width,initial-scale=1" }
-            title { +"$entryTitle - YappoLogs2" }
+            title { +"${entry.title} - YappoLogs2" }
             // link { rel = "stylesheet"; href = "/style.css" }
             link { rel="icon"; href="/favicon.png" }
             link {
                 rel = "alternate";
                 type="application/rss+xml";
                 title="RSS Feed";
-                href="https://blog.yappo.jp/feed" }
+                href="https://blog.yappo.jp/feed.xml" }
         }
         body {
             header {
@@ -101,7 +164,7 @@ fun createIndexHtml(dirPath: Path, entry: Entry) {
                 div("eyecatch") {
                 }
                 div("container") {
-                    h1 { +entryTitle }
+                    h1 { +entry.title }
                     div {
                         img {
                             src = "https://pbs.twimg.com/profile_images/1770102954382831616/H3LXaTgp_normal.jpg"
@@ -109,10 +172,10 @@ fun createIndexHtml(dirPath: Path, entry: Entry) {
                             width = "16"
                             height = "16"
                         }
-                        +"✍ : $publishDate"}
+                        +"✍ : ${entry.publishDateLocal}"}
                     // ここにJetBrains/markdownで変換したHTMLを挿入
                     div {
-                        unsafe { +html }
+                        unsafe { +entry.html }
                     }
                 }
             }
@@ -130,3 +193,93 @@ fun createIndexHtml(dirPath: Path, entry: Entry) {
     println("Created: ${indexHtml.toAbsolutePath()}")
 }
 
+
+fun createIndexHtml(documentRootDir: Path, entries: List<Entry>) {
+    val indexHtmlPath = documentRootDir.resolve("index.html")
+
+    val htmlContent = createHTML().html {
+        lang = "en"
+        head {
+            meta { charset = "UTF-8" }
+            link { rel = "icon"; href = "/favicon.png" }
+            link {
+                rel = "alternate"
+                type = "application/rss+xml"
+                title = "RSS Feed"
+                href = "https://blog.yappo.jp/feed.xml"
+            }
+            title { +"YappoLogs2" }
+        }
+        body {
+            div {
+                header {
+                    div {
+                        a("/") { +"YappoLogs2" }
+                    }
+                }
+                main {
+                    ul {
+                        entries.forEach { entry ->
+                            li {
+                                a(href = entry.urlPath) { +entry.title }
+                                p { +entry.publishDateLocal }
+                                p {
+                                    +if (entry.body.length > 140) entry.body.take(140) + "..." else entry.body
+                                }
+                            }
+                        }
+                    }
+                }
+                footer {
+                    div {
+                        a("https://x.com/yappo") { +"@Yappo" }
+                    }
+                }
+            }
+        }
+    }
+
+    Files.writeString(indexHtmlPath, htmlContent)
+    println("Created: ${indexHtmlPath.toAbsolutePath()}")
+}
+
+fun createRssXML(documentRootDir: Path, entries: List<Entry>) {
+    val rssXmlPath = documentRootDir.resolve("feed.xml")
+
+    val lastPublishDate : String = entries.firstOrNull()?.publishDate ?: ""
+
+    val itemsXml = entries.joinToString(separator = "\n") { entry ->
+        val content = StringEscapeUtils.escapeXml10(entry.summary)
+
+        """
+        <item>
+            <title>${entry.title}</title>
+            <link>https://blog.yappo.jp/entry/${entry.urlPath}</link>
+            <description/>
+            <content:encoded>
+$content
+            </content:encoded>
+            <pubDate>${entry.publishDate}</pubDate>
+            <guid>https://blog.yappo.jp/entry/${entry.urlPath}</guid>
+        </item>
+        """.trimIndent()
+    }
+
+    val rssContent = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <rss xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+            <channel>
+                <title>YappoLogs2</title>
+                <link>https://blog.yappo.jp/</link>
+                <atom:link href="https://blog.yappo.jp/feed.xml" rel="self" type="application/rss+xml"/>
+                <description>The latest articles from my blog</description>
+                <language>en</language>
+                <pubDate>$lastPublishDate</pubDate>
+                $itemsXml
+            </channel>
+        </rss>
+    """.trimIndent()
+
+    Files.writeString(rssXmlPath, rssContent)
+    println("Created: ${rssXmlPath.toAbsolutePath()}")
+}

@@ -16,6 +16,7 @@ dependencies {
     implementation(kotlin("stdlib"))
     implementation("org.jetbrains:markdown:0.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-html-jvm:0.8.0")
+    implementation("org.apache.commons:commons-text:1.10.0")
 }
 
 tasks.test {
