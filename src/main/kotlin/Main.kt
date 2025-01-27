@@ -68,9 +68,12 @@ fun createIndexHtml(dirPath: Path, entry: Entry) {
     val parsedTree = MarkdownParser(flavour).buildMarkdownTreeFromString(entry.body)
     val entryTitle = entry.title.ifBlank { "Untitled" }
     val publishDate = entry.publishDate.ifBlank { "UntitledDate" }
-    val html = HtmlGenerator(entry.body, parsedTree, flavour).generateHtml()
 
-    
+    // TODO: <body> タグ入れたくないからループ回してるの嫌な感じ
+    val html = parsedTree.children.map {
+        HtmlGenerator(entry.body, it, flavour).generateHtml()
+    }.joinToString(separator = "") { it }
+
     val htmlContent = createHTML().html {
         lang = "en"
         head {
