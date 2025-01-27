@@ -37,7 +37,10 @@ fun processDirectory(dirPath: Path) {
         createIndexHtml(dirPath, entry)
     }
 
-    Files.list(dirPath).filter { it.toFile().isDirectory }.forEach { processDirectory(it) }
+    Files.list(dirPath)
+        .sorted(reverseOrder())
+        .filter { it.toFile().isDirectory }
+        .forEach { processDirectory(it) }
 }
 
 // TODO: 雑なのちゃんとしよう。。
