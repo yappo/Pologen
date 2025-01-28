@@ -22,7 +22,11 @@ data class Entry(
     val markdown: String,
     val html: String,
     val body: String,
-    val summary: String = body.take(140) + "...",
+    val summary: String = if (body.length > 140) {
+          body.take(140) + "..."
+    } else {
+        body
+    },
 )
 
 fun convertToRssDateTimeFormat(dateTime: String, fromZoneId: ZoneId, toZoneId: ZoneId): String {
@@ -221,9 +225,7 @@ fun createIndexHtml(documentRootDir: Path, entries: List<Entry>) {
                             li {
                                 a(href = entry.urlPath) { +entry.title }
                                 p { +entry.publishDateLocal }
-                                p {
-                                    +if (entry.body.length > 140) entry.body.take(140) + "..." else entry.body
-                                }
+                                p { +entry.summary }
                             }
                         }
                     }
