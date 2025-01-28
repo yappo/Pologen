@@ -1,7 +1,7 @@
+import com.akuleshov7.ktoml.file.TomlFileReader
 import kotlinx.html.*
 import kotlinx.html.stream.createHTML
 import org.apache.commons.text.StringEscapeUtils
-import org.intellij.markdown.ast.ASTNode
 import org.intellij.markdown.flavours.commonmark.CommonMarkFlavourDescriptor
 import org.intellij.markdown.html.HtmlGenerator
 import org.intellij.markdown.parser.MarkdownParser
@@ -11,7 +11,12 @@ import java.nio.file.Path
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.util.Locale
+import java.util.*
+import com.akuleshov7.ktoml.file.TomlFileWriter
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import java.security.MessageDigest
+import kotlin.io.path.isRegularFile
 
 data class Entry(
     val filePath: Path,
@@ -32,6 +37,15 @@ data class Entry(
     }
 }
 
+@Serializable
+data class EntryMeta(
+    val publishDate: String,
+    val updateDate: String,
+    val bodyMd5: String
+)
+
+val DIGEST = MessageDigest.getInstance("SHA-256")
+
 fun convertToRssDateTimeFormat(dateTime: String, fromZoneId: ZoneId, toZoneId: ZoneId): String {
     val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
@@ -43,6 +57,12 @@ fun convertToRssDateTimeFormat(dateTime: String, fromZoneId: ZoneId, toZoneId: Z
     val rssFormatter =
         DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH)
     return gmtZonedDateTime.format(rssFormatter)
+}
+
+fun currentDateTimeInJST(): String {
+    val currentDateTime = LocalDateTime.now(ZoneId.of("Asia/Tokyo"))
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+    return currentDateTime.format(formatter)
 }
 
 fun main(args: Array<String>) {
@@ -94,19 +114,10 @@ fun recursiveMarkdownFiles(rootDirPath: Path, dirPath: Path) : List<Entry> {
 // TODO: 雑なのちゃんとしよう。。
 fun loadMarkdown(rootDirPath: Path, filePath: Path): Entry {
     val lines = Files.readAllLines(filePath)
-    val titleLine = lines.firstOrNull { it.startsWith("title: ") }
-        ?: error("Error: Missing or malformed title in file $filePath")
-    val dateLine = lines.firstOrNull { it.startsWith("date: ") }
-        ?: error("Error: Missing or malformed date in file $filePath")
+    val titleLine = lines.first()
 
     val title = titleLine.removePrefix("title: ").trim().ifBlank { "Untitled" }
-    val date = dateLine.removePrefix("date: ").trim().ifBlank { "UntitledDate" }
-
-    val bodyStartIndex = lines.indexOfFirst { it.isBlank() }
-    if (bodyStartIndex <= 0 || bodyStartIndex >= lines.size) {
-        error("Error: Missing body content in file $filePath")
-    }
-    val markdown = lines.drop(bodyStartIndex).joinToString("\n").trim()
+    val markdown = lines.drop(1).joinToString("\n").trim()
 
     // TODO: <body> タグ入れたくないからループ回してるの嫌な感じ
     val flavour = CommonMarkFlavourDescriptor()
@@ -115,6 +126,7 @@ fun loadMarkdown(rootDirPath: Path, filePath: Path): Entry {
         HtmlGenerator(markdown, it, flavour).generateHtml()
     }.joinToString(separator = "") { it }
     val body = stripHtml(html)
+    val bodyDigest = DIGEST.digest(body.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
 
     // make an absolute path
     val urlPath = rootDirPath.relativize(filePath.parent).toString().replace(File.separatorChar, '/')
@@ -122,11 +134,43 @@ fun loadMarkdown(rootDirPath: Path, filePath: Path): Entry {
     val localZoneId = ZoneId.of("Asia/Tokyo")
     val gmtZoneId = ZoneId.of("GMT")
 
+    // meta file
+    val currentDatTime = currentDateTimeInJST()
+    val metaFilePath = filePath.parent.resolve("meta.toml")
+    val meta = if (metaFilePath.isRegularFile()) { // TODO: 雑なの直す。。
+        TomlFileReader().decodeFromFile(EntryMeta.serializer(),
+                                        metaFilePath.toAbsolutePath().toString())
+    } else {
+        val createMeta = EntryMeta(currentDatTime, currentDatTime, bodyDigest)
+        TomlFileWriter().encodeToFile(
+            EntryMeta.serializer(),
+            createMeta,
+            metaFilePath.toAbsolutePath().toString()
+        )
+        println("Created: ${metaFilePath.toAbsolutePath()}")
+
+        createMeta
+    }
+
+    val publishDate = if (meta.bodyMd5 != bodyDigest) {
+        val newMeta = meta.copy(bodyMd5 = bodyDigest, updateDate = currentDatTime)
+        TomlFileWriter().encodeToFile(
+            EntryMeta.serializer(),
+            newMeta,
+            metaFilePath.toAbsolutePath().toString()
+        )
+        println("Updated: ${metaFilePath.toAbsolutePath()}")
+
+        newMeta.publishDate
+    } else {
+        meta.publishDate
+    }
+
     return Entry(filePath,
         "/$urlPath/",
         title,
-        convertToRssDateTimeFormat(date, localZoneId, gmtZoneId),
-        convertToRssDateTimeFormat(date, localZoneId, localZoneId),
+        convertToRssDateTimeFormat(publishDate, localZoneId, gmtZoneId),
+        convertToRssDateTimeFormat(publishDate, localZoneId, localZoneId),
         markdown,
         html,
         body)
