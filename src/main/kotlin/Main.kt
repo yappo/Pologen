@@ -252,32 +252,32 @@ fun createRssXML(documentRootDir: Path, entries: List<Entry>) {
         val content = StringEscapeUtils.escapeXml10(entry.summary)
 
         """
-        <item>
-            <title>${entry.title}</title>
-            <link>https://blog.yappo.jp/entry/${entry.urlPath}</link>
-            <description/>
-            <content:encoded>
+    <item>
+        <title>${entry.title}</title>
+        <link>https://blog.yappo.jp/entry/${entry.urlPath}</link>
+        <description/>
+        <content:encoded>
 $content
-            </content:encoded>
-            <pubDate>${entry.publishDate}</pubDate>
-            <guid>https://blog.yappo.jp/entry/${entry.urlPath}</guid>
-        </item>
+        </content:encoded>
+        <pubDate>${entry.publishDate}</pubDate>
+        <guid>https://blog.yappo.jp/entry/${entry.urlPath}</guid>
+    </item>
         """.trimIndent()
     }
 
     val rssContent = """
-        <?xml version="1.0" encoding="UTF-8"?>
-        <rss xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
-            <channel>
-                <title>YappoLogs2</title>
-                <link>https://blog.yappo.jp/</link>
-                <atom:link href="https://blog.yappo.jp/feed.xml" rel="self" type="application/rss+xml"/>
-                <description>The latest articles from my blog</description>
-                <language>en</language>
-                <pubDate>$lastPublishDate</pubDate>
-                $itemsXml
-            </channel>
-        </rss>
+<?xml version="1.0" encoding="UTF-8"?>
+<rss xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+    <channel>
+    <title>YappoLogs2</title>
+    <link>https://blog.yappo.jp/</link>
+    <atom:link href="https://blog.yappo.jp/feed.xml" rel="self" type="application/rss+xml"/>
+    <description>The latest articles from my blog</description>
+    <language>en</language>
+    <pubDate>$lastPublishDate</pubDate>
+$itemsXml
+    </channel>
+</rss>
     """.trimIndent()
 
     Files.writeString(rssXmlPath, rssContent)
