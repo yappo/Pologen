@@ -143,9 +143,7 @@ fun createEntriesHtml(entries: List<Entry>) {
 }
 
 fun createEntryHtml(entry: Entry) {
-    val indexHtml = entry.filePath.parent.resolve("index.html")
-
-    val htmlContent = createHTML().html {
+    val content = createHTML().html {
         lang = "en"
         head {
             meta { charset = "UTF-8" }
@@ -193,16 +191,12 @@ fun createEntryHtml(entry: Entry) {
             }
         }
     }
-
-    Files.writeString(indexHtml, htmlContent)
-    println("Created: ${indexHtml.toAbsolutePath()}")
+    writeFile(entry.filePath.parent.resolve("index.html"), content)
 }
 
 
 fun createIndexHtml(documentRootDir: Path, entries: List<Entry>) {
-    val indexHtmlPath = documentRootDir.resolve("index.html")
-
-    val htmlContent = createHTML().html {
+    val content = createHTML().html {
         lang = "en"
         head {
             meta { charset = "UTF-8" }
@@ -241,14 +235,10 @@ fun createIndexHtml(documentRootDir: Path, entries: List<Entry>) {
             }
         }
     }
-
-    Files.writeString(indexHtmlPath, htmlContent)
-    println("Created: ${indexHtmlPath.toAbsolutePath()}")
+    writeFile(documentRootDir.resolve("index.html"), content)
 }
 
 fun createRssXML(documentRootDir: Path, entries: List<Entry>) {
-    val rssXmlPath = documentRootDir.resolve("feed.xml")
-
     val lastPublishDate : String = entries.firstOrNull()?.publishDate ?: ""
 
     val itemsXml = entries.joinToString(separator = "\n") { entry ->
@@ -268,7 +258,7 @@ $content
         """.trimIndent()
     }
 
-    val rssContent = """
+    val content = """
 <?xml version="1.0" encoding="UTF-8"?>
 <rss xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
     <channel>
@@ -281,8 +271,13 @@ $content
 $itemsXml
     </channel>
 </rss>
-    """.trimIndent()
+"""
 
-    Files.writeString(rssXmlPath, rssContent)
-    println("Created: ${rssXmlPath.toAbsolutePath()}")
+
+    writeFile(documentRootDir.resolve("feed.xml"), content)
+}
+
+fun writeFile(path: Path, content: String){
+    Files.writeString(path, content)
+    println("Created: ${path.toAbsolutePath()}")
 }
