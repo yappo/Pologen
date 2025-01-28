@@ -20,10 +20,9 @@ data class Entry(
     val publishDate: String,
     val publishDateLocal: String,
     val markdown: String,
-    val ast: ASTNode,
     val html: String,
     val body: String,
-    val summary: String = body.take(140) + "..."
+    val summary: String = body.take(140) + "...",
 )
 
 fun convertToRssDateTimeFormat(dateTime: String, fromZoneId: ZoneId, toZoneId: ZoneId): String {
@@ -122,7 +121,6 @@ fun loadMarkdown(rootDirPath: Path, filePath: Path): Entry {
         convertToRssDateTimeFormat(date, localZoneId, gmtZoneId),
         convertToRssDateTimeFormat(date, localZoneId, localZoneId),
         markdown,
-        parsedTree,
         html,
         body)
 }
