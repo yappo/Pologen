@@ -22,12 +22,15 @@ data class Entry(
     val markdown: String,
     val html: String,
     val body: String,
-    val summary: String = if (body.length > 140) {
-          body.take(140) + "..."
-    } else {
-        body
-    },
-)
+) {
+    val summary: String by lazy {
+        if (body.length > 140) {
+            body.take(140) + "..."
+        } else {
+            body
+        }
+    }
+}
 
 fun convertToRssDateTimeFormat(dateTime: String, fromZoneId: ZoneId, toZoneId: ZoneId): String {
     val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
