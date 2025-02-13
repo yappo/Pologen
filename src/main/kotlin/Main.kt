@@ -44,7 +44,7 @@ data class EntryMeta(
     val bodyMd5: String
 )
 
-val DIGEST = MessageDigest.getInstance("SHA-256")
+val DIGEST = MessageDigest.getInstance("SHA-256") ?: error("Failed to make a digest instance.")
 
 fun convertToRssDateTimeFormat(dateTime: String, fromZoneId: ZoneId, toZoneId: ZoneId): String {
     val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
