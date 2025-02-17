@@ -14,7 +14,6 @@ import java.time.format.DateTimeFormatter
 import java.util.*
 import com.akuleshov7.ktoml.file.TomlFileWriter
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import java.security.MessageDigest
 import kotlin.io.path.isRegularFile
 
