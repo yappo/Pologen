@@ -291,13 +291,13 @@ fun createRssXML(documentRootDir: Path, entries: List<Entry>) {
         """
     <item>
         <title>${entry.title}</title>
-        <link>https://blog.yappo.jp/entry/${entry.urlPath}</link>
+        <link>https://blog.yappo.jp/entry${entry.urlPath}</link>
         <description/>
         <content:encoded>
 $content
         </content:encoded>
         <pubDate>${entry.publishDate}</pubDate>
-        <guid>https://blog.yappo.jp/entry/${entry.urlPath}</guid>
+        <guid>https://blog.yappo.jp/entry${entry.urlPath}</guid>
     </item>
         """.trimIndent()
     }
