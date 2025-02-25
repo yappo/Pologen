@@ -77,7 +77,7 @@ fun currentDateTimeInJST(): String {
 
 fun main(args: Array<String>) {
     if (args.isEmpty()) {
-        println("Usage: $ app documentRoot")
+        println("Usage: $ app config.toml")
         return
     }
 
