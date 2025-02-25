@@ -14,8 +14,9 @@ import java.time.format.DateTimeFormatter
 import java.util.*
 import com.akuleshov7.ktoml.file.TomlFileWriter
 import kotlinx.serialization.Serializable
+import java.net.URI
 import java.security.MessageDigest
-import kotlin.io.path.isRegularFile
+import kotlin.io.path.*
 
 data class Entry(
     val filePath: Path,
@@ -35,6 +36,16 @@ data class Entry(
         }
     }
 }
+
+@Serializable
+data class Configuration (
+    val documentRootPath: String,
+    val blogTopUrl: String,
+    val documentBaseUrl: String,
+    val feedXmlPath: String,
+    val feedXmlUrl: String,
+    val indexHtmlPath: String,
+)
 
 @Serializable
 data class EntryMeta(
@@ -70,26 +81,34 @@ fun main(args: Array<String>) {
         return
     }
 
-    val documentRootPath = args[0]
+    val configFile = Path(args[0]).toAbsolutePath().normalize()
+    println("configuration file path: $configFile")
+    val conf = loadConfiguration(configFile)
 
-    val documentRootDir = File(documentRootPath)
-    if (!documentRootDir.exists() || !documentRootDir.isDirectory) {
-        println("Invalid docs directory: $documentRootPath")
+    val docsRootDir = configFile.parent.resolve(conf.documentRootPath).normalize()
+    if (!docsRootDir.exists() || !docsRootDir.isDirectory()) {
+        println("Invalid docs directory: $docsRootDir")
         return
     }
 
-    val docsRootDir = File(documentRootPath).resolve("entry")
-    if (!docsRootDir.exists() || !docsRootDir.isDirectory) {
-        println("Invalid docs directory: ${docsRootDir.toPath()}")
-        return
-    }
-
-    val entries = recursiveMarkdownFiles(documentRootDir.toPath(), docsRootDir.toPath())
-    createEntriesHtml(entries)
+    val entries = recursiveMarkdownFiles(
+        configFile.parent.resolve(conf.documentRootPath).normalize(),
+        docsRootDir)
+    createEntriesHtml(conf, entries)
 
     val indexEntries = entries.take(30)
-    createIndexHtml(documentRootDir.toPath(), indexEntries)
-    createRssXML(documentRootDir.toPath(), indexEntries)
+    createIndexHtml(conf, configFile.parent.resolve(conf.indexHtmlPath).normalize(), indexEntries)
+    createRssXML(conf, configFile.parent.resolve(conf.feedXmlPath).normalize(), indexEntries)
+}
+
+fun loadConfiguration(path: Path): Configuration {
+    val configuration = if (path.isRegularFile()) { // TODO: 雑なの直す。。
+        TomlFileReader().decodeFromFile(Configuration.serializer(), path.toString())
+    } else {
+        error("Configuration file does not exists: $path")
+    }
+
+    return configuration
 }
 
 fun recursiveMarkdownFiles(rootDirPath: Path, dirPath: Path) : List<Entry> {
@@ -180,12 +199,12 @@ fun stripHtml(html: String): String {
     return html.replace(Regex("<[^>]*>"), "").trim()
 }
 
-fun createEntriesHtml(entries: List<Entry>) {
-    entries.forEach { createEntryHtml(it) }
+fun createEntriesHtml(conf: Configuration, entries: List<Entry>) {
+    entries.forEach { createEntryHtml(conf, it) }
     println("Created ${entries.size} entries.")
 }
 
-fun createEntryHtml(entry: Entry) {
+fun createEntryHtml(conf: Configuration, entry: Entry) {
     val content = createHTML().html {
         lang = "en"
         head {
@@ -198,12 +217,13 @@ fun createEntryHtml(entry: Entry) {
                 rel = "alternate";
                 type="application/rss+xml";
                 title="RSS Feed";
-                href="https://blog.yappo.jp/feed.xml" }
+                href=conf.feedXmlUrl
+            }
         }
         body {
             header {
                 h1 {
-                    a("https://blog.yappo.jp/") { +"YappoLogs2" }
+                    a(conf.blogTopUrl) { +"YappoLogs2" }
                 }
             }
             article("section") {
@@ -238,7 +258,7 @@ fun createEntryHtml(entry: Entry) {
 }
 
 
-fun createIndexHtml(documentRootDir: Path, entries: List<Entry>) {
+fun createIndexHtml(conf: Configuration, indexHtmlPath: Path, entries: List<Entry>) {
     val content = createHTML().html {
         lang = "en"
         head {
@@ -248,7 +268,7 @@ fun createIndexHtml(documentRootDir: Path, entries: List<Entry>) {
                 rel = "alternate"
                 type = "application/rss+xml"
                 title = "RSS Feed"
-                href = "https://blog.yappo.jp/feed.xml"
+                href = conf.feedXmlUrl
             }
             title { +"YappoLogs2" }
         }
@@ -256,14 +276,15 @@ fun createIndexHtml(documentRootDir: Path, entries: List<Entry>) {
             div {
                 header {
                     div {
-                        a("/") { +"YappoLogs2" }
+                        a(conf.blogTopUrl) { +"YappoLogs2" }
                     }
                 }
                 main {
                     ul {
                         entries.forEach { entry ->
                             li {
-                                a(href = entry.urlPath) { +entry.title }
+                                val href = URI(conf.documentBaseUrl + entry.urlPath).normalize().toString()
+                                a(href = href) { +entry.title }
                                 p { +entry.publishDateLocal }
                                 p { +entry.summary }
                             }
@@ -278,25 +299,27 @@ fun createIndexHtml(documentRootDir: Path, entries: List<Entry>) {
             }
         }
     }
-    writeFile(documentRootDir.resolve("index.html"), content)
+    writeFile(indexHtmlPath, content)
 }
 
-fun createRssXML(documentRootDir: Path, entries: List<Entry>) {
+fun createRssXML(conf: Configuration, feedXmlPath: Path, entries: List<Entry>) {
     val lastPublishDate : String = entries.firstOrNull()?.publishDate ?: ""
 
     val itemsXml = entries.joinToString(separator = "\n") { entry ->
+        val link = URI(conf.documentBaseUrl + entry.urlPath).normalize().toString()
+
         val content = StringEscapeUtils.escapeXml10(entry.summary)
 
         """
     <item>
         <title>${entry.title}</title>
-        <link>https://blog.yappo.jp${entry.urlPath}</link>
+        <link>$link</link>
         <description/>
         <content:encoded>
 $content
         </content:encoded>
         <pubDate>${entry.publishDate}</pubDate>
-        <guid>https://blog.yappo.jp${entry.urlPath}</guid>
+        <guid>$link</guid>
     </item>
         """.trimIndent()
     }
@@ -316,7 +339,7 @@ $itemsXml
 """
 
 
-    writeFile(documentRootDir.resolve("feed.xml"), content)
+    writeFile(feedXmlPath, content)
 }
 
 fun writeFile(path: Path, content: String){
