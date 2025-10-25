@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm") version "2.1.0"
+    kotlin("jvm") version "2.1.10"
     kotlin("plugin.serialization") version "2.1.10"
     id("com.gradleup.shadow") version "9.1.0"
 }
@@ -12,9 +12,16 @@ repositories {
 }
 
 dependencies {
-    testImplementation(kotlin("test"))
+    // Kotest
+    val kotestVersion = "5.9.1"
+    testImplementation("io.kotest:kotest-runner-junit5-jvm:$kotestVersion")
+    testImplementation("io.kotest:kotest-assertions-core-jvm:$kotestVersion")
 
+    // Kotlin
+    testImplementation(kotlin("test"))
     implementation(kotlin("stdlib"))
+
+    // App deps
     implementation("org.jetbrains:markdown:0.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-html-jvm:0.8.0")
     implementation("org.apache.commons:commons-text:1.10.0")
@@ -24,6 +31,8 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+    // Run Kotest Specs (Gradle default includes *Test / *Tests only)
+    include("**/*Test.class", "**/*Tests.class", "**/*Spec.class")
 }
 
 tasks.jar {
