@@ -38,13 +38,13 @@ tasks.test {
 
 tasks.jar {
     manifest {
-        attributes["Main-Class"] = "MainKt"
+        attributes["Main-Class"] = "jp.yappo.pologen.MainKt"
     }
 }
 
 tasks.shadowJar {
     manifest {
-        attributes["Main-Class"] = "MainKt"
+        attributes["Main-Class"] = "jp.yappo.pologen.MainKt"
     }
 }
 
