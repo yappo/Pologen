@@ -1,0 +1,45 @@
+@import jp.yappo.pologen.EntryPageModel
+
+@param model:EntryPageModel
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>${model.title} - ${model.site.title}</title>
+    <link rel="icon" href="/favicon.png"/>
+    <link rel="alternate" type="application/rss+xml" title="RSS Feed" href="${model.site.feedXmlUrl}"/>
+</head>
+<body>
+<header>
+    <h1>
+        <a href="${model.site.blogTopUrl}">${model.site.title}</a>
+    </h1>
+</header>
+<article class="section">
+    <div class="eyecatch">
+    </div>
+    <div class="container">
+        <h1>${model.title}</h1>
+        <div>
+            <img src="https://pbs.twimg.com/profile_images/1770102954382831616/H3LXaTgp_normal.jpg"
+                 alt="yappo"
+                 width="16"
+                 height="16"/>
+            ✍ : ${model.publishDateLocal}
+        </div>
+        <div>
+            $unsafe{model.bodyHtml}
+        </div>
+    </div>
+</article>
+<footer>
+    <p>
+        <small>
+            <a href="https://x.com/yappo">@Yappo</a>
+        </small>
+    </p>
+</footer>
+</body>
+</html>

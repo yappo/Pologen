@@ -1,0 +1,41 @@
+@import jp.yappo.pologen.IndexPageModel
+
+@param model:IndexPageModel
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <title>${model.site.title}</title>
+    <link rel="icon" href="/favicon.png"/>
+    <link rel="alternate"
+          type="application/rss+xml"
+          title="RSS Feed"
+          href="${model.site.feedXmlUrl}"/>
+</head>
+<body>
+<div>
+    <header>
+        <div>
+            <a href="${model.site.blogTopUrl}">${model.site.title}</a>
+        </div>
+    </header>
+    <main>
+        <ul>
+            @for (entry in model.entries)
+                <li>
+                    <a href="${entry.href}">${entry.title}</a>
+                    <p>${entry.publishDateLocal}</p>
+                    <p>${entry.summary}</p>
+                </li>
+            @endfor
+        </ul>
+    </main>
+    <footer>
+        <div>
+            <a href="https://x.com/yappo">@Yappo</a>
+        </div>
+    </footer>
+</div>
+</body>
+</html>
