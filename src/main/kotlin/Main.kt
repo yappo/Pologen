@@ -1,7 +1,6 @@
 package jp.yappo.pologen
 
 import com.akuleshov7.ktoml.file.TomlFileReader
-import org.apache.commons.text.StringEscapeUtils
 import org.intellij.markdown.flavours.commonmark.CommonMarkFlavourDescriptor
 import org.intellij.markdown.html.HtmlGenerator
 import org.intellij.markdown.parser.MarkdownParser
@@ -216,42 +215,7 @@ fun createIndexHtml(conf: Configuration, indexHtmlPath: Path, entries: List<Entr
 }
 
 fun createRssXML(conf: Configuration, feedXmlPath: Path, entries: List<Entry>) {
-    val lastPublishDate : String = entries.firstOrNull()?.publishDate ?: ""
-
-    val itemsXml = entries.joinToString(separator = "\n") { entry ->
-        val link = URI(conf.documentBaseUrl + entry.urlPath).normalize().toString()
-
-        val content = StringEscapeUtils.escapeXml10(entry.summary)
-
-        """
-    <item>
-        <title>${entry.title}</title>
-        <link>$link</link>
-        <description/>
-        <content:encoded>
-$content
-        </content:encoded>
-        <pubDate>${entry.publishDate}</pubDate>
-        <guid>$link</guid>
-    </item>
-        """.trimIndent()
-    }
-
-    val content = """<?xml version="1.0" encoding="UTF-8"?>
-<rss xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
-    <channel>
-    <title>YappoLogs2</title>
-    <link>https://blog.yappo.jp/</link>
-    <atom:link href="https://blog.yappo.jp/feed.xml" rel="self" type="application/rss+xml"/>
-    <description>The latest articles from my blog</description>
-    <language>en</language>
-    <pubDate>$lastPublishDate</pubDate>
-$itemsXml
-    </channel>
-</rss>
-"""
-
-
+    val content = Templates.renderFeed(conf, entries)
     writeFile(feedXmlPath, content)
 }
 
