@@ -1,6 +1,6 @@
+package jp.yappo.pologen
+
 import com.akuleshov7.ktoml.file.TomlFileReader
-import kotlinx.html.*
-import kotlinx.html.stream.createHTML
 import org.apache.commons.text.StringEscapeUtils
 import org.intellij.markdown.flavours.commonmark.CommonMarkFlavourDescriptor
 import org.intellij.markdown.html.HtmlGenerator
@@ -205,100 +205,13 @@ fun createEntriesHtml(conf: Configuration, entries: List<Entry>) {
 }
 
 fun createEntryHtml(conf: Configuration, entry: Entry) {
-    val content = createHTML().html {
-        lang = "en"
-        head {
-            meta { charset = "UTF-8" }
-            meta { name = "viewport"; content = "width=device-width,initial-scale=1" }
-            title { +"${entry.title} - YappoLogs2" }
-            // link { rel = "stylesheet"; href = "/style.css" }
-            link { rel="icon"; href="/favicon.png" }
-            link {
-                rel = "alternate";
-                type="application/rss+xml";
-                title="RSS Feed";
-                href=conf.feedXmlUrl
-            }
-        }
-        body {
-            header {
-                h1 {
-                    a(conf.blogTopUrl) { +"YappoLogs2" }
-                }
-            }
-            article("section") {
-                div("eyecatch") {
-                }
-                div("container") {
-                    h1 { +entry.title }
-                    div {
-                        img {
-                            src = "https://pbs.twimg.com/profile_images/1770102954382831616/H3LXaTgp_normal.jpg"
-                            alt = "yappo"
-                            width = "16"
-                            height = "16"
-                        }
-                        +"✍ : ${entry.publishDateLocal}"}
-                    // ここにJetBrains/markdownで変換したHTMLを挿入
-                    div {
-                        unsafe { +entry.html }
-                    }
-                }
-            }
-            footer {
-                p {
-                    small {
-                        a("https://x.com/yappo") { +"@Yappo" }
-                    }
-                }
-            }
-        }
-    }
+    val content = Templates.renderEntry(conf, entry)
     writeFile(entry.filePath.parent.resolve("index.html"), content)
 }
 
 
 fun createIndexHtml(conf: Configuration, indexHtmlPath: Path, entries: List<Entry>) {
-    val content = createHTML().html {
-        lang = "en"
-        head {
-            meta { charset = "UTF-8" }
-            link { rel = "icon"; href = "/favicon.png" }
-            link {
-                rel = "alternate"
-                type = "application/rss+xml"
-                title = "RSS Feed"
-                href = conf.feedXmlUrl
-            }
-            title { +"YappoLogs2" }
-        }
-        body {
-            div {
-                header {
-                    div {
-                        a(conf.blogTopUrl) { +"YappoLogs2" }
-                    }
-                }
-                main {
-                    ul {
-                        entries.forEach { entry ->
-                            li {
-                                val href = URI(conf.documentBaseUrl + entry.urlPath).normalize().toString()
-                                a(href = href) { +entry.title }
-                                p { +entry.publishDateLocal }
-                                p { +entry.summary }
-                            }
-                        }
-                    }
-                }
-                footer {
-                    div {
-                        a("https://x.com/yappo") { +"@Yappo" }
-                    }
-                }
-            }
-        }
-    }
+    val content = Templates.renderIndex(conf, entries)
     writeFile(indexHtmlPath, content)
 }
 

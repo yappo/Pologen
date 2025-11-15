@@ -1,3 +1,5 @@
+package jp.yappo.pologen
+
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.string.shouldContain
 import java.nio.file.Files
