@@ -28,6 +28,7 @@ dependencies {
     implementation("com.akuleshov7:ktoml-file:0.5.1")
     implementation("gg.jte:jte:3.2.1")
     implementation("gg.jte:jte-kotlin:3.2.1")
+    implementation("org.imgscalr:imgscalr-lib:4.2")
 }
 
 tasks.test {

@@ -12,10 +12,18 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.*
 import com.akuleshov7.ktoml.file.TomlFileWriter
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import java.net.URI
 import java.security.MessageDigest
 import kotlin.io.path.*
+import org.imgscalr.Scalr
+import org.apache.commons.text.StringEscapeUtils
 
 data class Entry(
     val filePath: Path,
@@ -51,7 +59,41 @@ data class Configuration (
     val authorName: String,
     val authorUrl: String,
     val authorIconUrl: String,
+    val imageThumbWidth: Int = 480,
+    val imageFullMaxWidth: Int = 1920,
+    @Serializable(with = ScalrMethodSerializer::class)
+    val imageScaleMethod: Scalr.Method = Scalr.Method.QUALITY,
+    val imageJpegQuality: Float = 0.9f,
 )
+
+/**
+ * Maps human-readable configuration strings to the imgscalr resize methods.
+ */
+object ScalrMethodSerializer : KSerializer<Scalr.Method> {
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("ScalrMethod", PrimitiveKind.STRING)
+
+    override fun deserialize(decoder: Decoder): Scalr.Method {
+        return when (decoder.decodeString().lowercase()) {
+            "speed" -> Scalr.Method.SPEED
+            "balanced" -> Scalr.Method.BALANCED
+            "ultra_quality" -> Scalr.Method.ULTRA_QUALITY
+            "automatic" -> Scalr.Method.AUTOMATIC
+            "quality" -> Scalr.Method.QUALITY
+            else -> Scalr.Method.QUALITY
+        }
+    }
+
+    override fun serialize(encoder: Encoder, value: Scalr.Method) {
+        val text = when (value) {
+            Scalr.Method.SPEED -> "speed"
+            Scalr.Method.BALANCED -> "balanced"
+            Scalr.Method.QUALITY -> "quality"
+            Scalr.Method.ULTRA_QUALITY -> "ultra_quality"
+            Scalr.Method.AUTOMATIC -> "automatic"
+        }
+        encoder.encodeString(text)
+    }
+}
 
 @Serializable
 data class EntryMeta(
@@ -98,6 +140,7 @@ fun main(args: Array<String>) {
     }
 
     val entries = recursiveMarkdownFiles(
+        conf,
         configFile.parent.resolve(conf.documentRootPath).normalize(),
         docsRootDir)
     createEntriesHtml(conf, entries)
@@ -117,18 +160,18 @@ fun loadConfiguration(path: Path): Configuration {
     return configuration
 }
 
-fun recursiveMarkdownFiles(rootDirPath: Path, dirPath: Path) : List<Entry> {
+fun recursiveMarkdownFiles(conf: Configuration, rootDirPath: Path, dirPath: Path) : List<Entry> {
     val entries = mutableListOf<Entry>()
     val indexMdFile = dirPath.resolve("index.md")
     if (Files.exists(indexMdFile)) {
-        entries.add(loadMarkdown(rootDirPath, indexMdFile))
+        entries.add(loadMarkdown(conf, rootDirPath, indexMdFile))
     }
 
     Files.list(dirPath)
         .sorted(reverseOrder())
         .filter { it.toFile().isDirectory }
         .forEach {
-            val childEntries = recursiveMarkdownFiles(rootDirPath, it)
+            val childEntries = recursiveMarkdownFiles(conf, rootDirPath, it)
             entries.addAll(childEntries)
         }
 
@@ -136,25 +179,28 @@ fun recursiveMarkdownFiles(rootDirPath: Path, dirPath: Path) : List<Entry> {
 }
 
 // TODO: 雑なのちゃんとしよう。。
-fun loadMarkdown(rootDirPath: Path, filePath: Path): Entry {
+fun loadMarkdown(conf: Configuration, rootDirPath: Path, filePath: Path): Entry {
     val lines = Files.readAllLines(filePath)
     val titleLine = lines.first()
 
     val title = titleLine.removePrefix("title: ").trim().ifBlank { "Untitled" }
     val markdown = lines.drop(1).joinToString("\n").trim()
 
+    val relativePath = rootDirPath.relativize(filePath.parent).toString().replace(File.separatorChar, '/')
+    val urlPath = "/${if (relativePath.isBlank()) "" else "$relativePath/"}"
+
+    val markdownWithImages = processMarkdownImages(markdown, filePath.parent, urlPath, conf)
+
     // TODO: <body> タグ入れたくないからループ回してるの嫌な感じ
     val flavour = CommonMarkFlavourDescriptor()
-    val parsedTree = MarkdownParser(flavour).buildMarkdownTreeFromString(markdown)
+    val parsedTree = MarkdownParser(flavour).buildMarkdownTreeFromString(markdownWithImages)
     val html = parsedTree.children.map {
-        HtmlGenerator(markdown, it, flavour).generateHtml()
+        HtmlGenerator(markdownWithImages, it, flavour).generateHtml()
     }.joinToString(separator = "") { it }
     val body = stripHtml(html)
     val bodyDigest = DIGEST.digest(body.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
 
     // make an absolute path
-    val urlPath = rootDirPath.relativize(filePath.parent).toString().replace(File.separatorChar, '/')
-
     val localZoneId = ZoneId.of("Asia/Tokyo")
     val gmtZoneId = ZoneId.of("GMT")
 
@@ -191,11 +237,11 @@ fun loadMarkdown(rootDirPath: Path, filePath: Path): Entry {
     }
 
     return Entry(filePath,
-        "/$urlPath/",
+        urlPath,
         title,
         convertToRssDateTimeFormat(publishDate, localZoneId, gmtZoneId),
         convertToRssDateTimeFormat(publishDate, localZoneId, localZoneId),
-        markdown,
+        markdownWithImages,
         html,
         body)
 }
@@ -224,6 +270,64 @@ fun createIndexHtml(conf: Configuration, indexHtmlPath: Path, entries: List<Entr
 fun createRssXML(conf: Configuration, feedXmlPath: Path, entries: List<Entry>) {
     val content = Templates.renderFeed(conf, entries)
     writeFile(feedXmlPath, content)
+}
+
+/**
+ * Rewrites Markdown image syntax to responsive HTML and generates resized JPEG assets.
+ */
+fun processMarkdownImages(
+    markdown: String,
+    entryDir: Path,
+    entryUrlPath: String,
+    conf: Configuration
+): String {
+    val imageRegex = Regex("""!\[([^\]]*)]\(([^)]+)\)""")
+    return imageRegex.replace(markdown) { matchResult ->
+        val altText = matchResult.groupValues.getOrNull(1)?.trim().orEmpty()
+        val relativeSource = matchResult.groupValues.getOrNull(2)?.trim().orEmpty()
+        if (relativeSource.isBlank()) {
+            return@replace matchResult.value
+        }
+
+        val sourcePath = entryDir.resolve(relativeSource).normalize()
+        if (!sourcePath.isRegularFile()) {
+            println("Image not found, skipping: $sourcePath")
+            return@replace matchResult.value
+        }
+
+        val baseName = sourcePath.fileName.toString().substringBeforeLast(".")
+        val fullName = "$baseName-full.jpg"
+        val thumbName = "$baseName-thumb.jpg"
+        val destFull = entryDir.resolve(fullName)
+        val destThumb = entryDir.resolve(thumbName)
+
+        try {
+            generateResizedImages(
+                sourcePath,
+                destFull,
+                destThumb,
+                conf.imageFullMaxWidth,
+                conf.imageThumbWidth,
+                conf.imageScaleMethod,
+                conf.imageJpegQuality
+            )
+        } catch (e: Exception) {
+            println("Failed to resize image $sourcePath: ${e.message}")
+            return@replace matchResult.value
+        }
+
+        val escapedAlt = StringEscapeUtils.escapeHtml4(altText)
+        """
+<a href="${entryUrlPath}${fullName}" target="_blank" rel="noopener">
+  <img
+    src="${entryUrlPath}${thumbName}"
+    alt="$escapedAlt"
+    loading="lazy"
+    class="max-w-full h-auto rounded-xl shadow-md"
+  />
+</a>
+        """.trimIndent()
+    }
 }
 
 fun writeFile(path: Path, content: String){
