@@ -11,7 +11,7 @@ import javax.imageio.stream.ImageOutputStream
 import org.imgscalr.Scalr
 
 /**
- * Generates responsive JPEG variants (full and thumbnail) for a source image.
+ * Generates responsive image variants (full and thumbnail) for a source asset.
  */
 fun generateResizedImages(
     source: Path,
@@ -29,8 +29,8 @@ fun generateResizedImages(
     val fullImage = resizeToWidth(original, fullMaxWidth, scaleMethod)
     val thumbImage = resizeToWidth(original, thumbWidth, scaleMethod)
 
-    writeJpeg(fullImage, destFull, jpegQuality)
-    writeJpeg(thumbImage, destThumb, jpegQuality)
+    writeImage(fullImage, destFull, jpegQuality)
+    writeImage(thumbImage, destThumb, jpegQuality)
 }
 
 private fun resizeToWidth(
@@ -55,6 +55,13 @@ private fun ensureRgb(image: BufferedImage): BufferedImage {
     return converted
 }
 
+private fun writeImage(image: BufferedImage, dest: Path, quality: Float) {
+    when (dest.fileName.toString().substringAfterLast('.', "").lowercase()) {
+        "png" -> writePng(image, dest)
+        else -> writeJpeg(image, dest, quality)
+    }
+}
+
 /**
  * Writes the supplied [image] to [dest] as a JPEG at the requested [quality].
  */
@@ -72,4 +79,9 @@ fun writeJpeg(image: BufferedImage, dest: Path, quality: Float) {
         writer.write(null, IIOImage(image, null, null), params)
         writer.dispose()
     }
+}
+
+private fun writePng(image: BufferedImage, dest: Path) {
+    dest.parent?.let { Files.createDirectories(it) }
+    ImageIO.write(image, "png", dest.toFile())
 }

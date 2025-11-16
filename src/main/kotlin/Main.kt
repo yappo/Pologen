@@ -295,9 +295,11 @@ fun processMarkdownImages(
             return@replace matchResult.value
         }
 
-        val baseName = sourcePath.fileName.toString().substringBeforeLast(".")
-        val fullName = "$baseName-full.jpg"
-        val thumbName = "$baseName-thumb.jpg"
+        val originalName = sourcePath.fileName.toString()
+        val baseName = originalName.substringBeforeLast(".", originalName)
+        val extension = originalName.substringAfterLast('.', "jpg")
+        val fullName = "$baseName-full.$extension"
+        val thumbName = "$baseName-thumb.$extension"
         val destFull = entryDir.resolve(fullName)
         val destThumb = entryDir.resolve(thumbName)
 
