@@ -20,9 +20,6 @@
                     ${model.site.title}
                 </a>
             </div>
-            <div class="text-xs text-slate-400">
-                Tailwind CSS + daisyUI ready
-            </div>
         </div>
     </header>
     <main class="flex-1">
