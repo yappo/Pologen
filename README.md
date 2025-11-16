@@ -22,11 +22,20 @@ documentBaseUrl = "https://blog.example.com"
 feedXmlPath = "htdocs/feed.xml"
 feedXmlUrl = "https://blog.example.com/feed.xml"
 indexHtmlPath = "htdocs/index.html"
+siteTitle = "Example Blog"
+siteDescription = "Latest updates from Example"
+siteLanguage = "en"
+faviconUrl = "/favicon.png"
+authorName = "@example"
+authorUrl = "https://social.example.com/example"
+authorIconUrl = "https://cdn.example.com/icon.png"
 ```
 
 - `documentRootPath` points to the directory containing your posts.
 - `documentBaseUrl` and `blogTopUrl` supply absolute links for the generated HTML.
 - `feedXmlPath`/`feedXmlUrl` and `indexHtmlPath` define where the feed and top-level index are written.
+- `siteTitle`, `siteDescription`, and `siteLanguage` configure the text metadata injected into both HTML templates and RSS.
+- `faviconUrl`, `authorName`, `authorUrl`, and `authorIconUrl` drive the header/footer branding, author credits, and avatar used on entry pages.
 
 ## Content Layout
 Each post resides in its own directory beneath `documentRootPath` and must contain an `index.md`. The first line is treated as the title using the `title: Your Title` format; the remainder is parsed with JetBrains Markdown and rendered into HTML. The generator maintains a `meta.toml` alongside each entry that tracks `publishDate`, `updateDate`, and a body digest. The file is created on first run and the digest is refreshed whenever the Markdown content changes.

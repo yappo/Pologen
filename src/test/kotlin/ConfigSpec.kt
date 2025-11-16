@@ -18,6 +18,13 @@ class ConfigSpec : FunSpec({
             feedXmlPath = "feed.xml"
             feedXmlUrl = "/feed.xml"
             indexHtmlPath = "index.html"
+            siteTitle = "Example Site"
+            siteDescription = "Example Description"
+            siteLanguage = "en"
+            faviconUrl = "/favicon.png"
+            authorName = "@example"
+            authorUrl = "https://example.com/me"
+            authorIconUrl = "https://example.com/me.png"
             """.trimIndent()
         )
         val conf = loadConfiguration(file)
@@ -27,5 +34,12 @@ class ConfigSpec : FunSpec({
         conf.feedXmlPath shouldBe "feed.xml"
         conf.feedXmlUrl shouldBe "/feed.xml"
         conf.indexHtmlPath shouldBe "index.html"
+        conf.siteTitle shouldBe "Example Site"
+        conf.siteDescription shouldBe "Example Description"
+        conf.siteLanguage shouldBe "en"
+        conf.faviconUrl shouldBe "/favicon.png"
+        conf.authorName shouldBe "@example"
+        conf.authorUrl shouldBe "https://example.com/me"
+        conf.authorIconUrl shouldBe "https://example.com/me.png"
     }
 })

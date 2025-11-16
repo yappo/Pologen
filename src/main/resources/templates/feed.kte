@@ -8,8 +8,8 @@
         <title>${model.site.title}</title>
         <link>${model.channelLink}</link>
         <atom:link href="${model.channelFeedUrl}" rel="self" type="application/rss+xml"/>
-        <description>The latest articles from my blog</description>
-        <language>en</language>
+        <description>${model.site.description}</description>
+        <language>${model.site.language}</language>
         <pubDate>${model.lastPublishDate}</pubDate>
         @for (entry in model.entries)
             <item>

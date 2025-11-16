@@ -8,12 +8,20 @@ import org.apache.commons.text.StringEscapeUtils
 import java.net.URI
 import java.nio.file.Files
 
-private const val SITE_TITLE = "YappoLogs2"
+data class AuthorMeta(
+    val name: String,
+    val url: String,
+    val iconUrl: String,
+)
 
 data class SiteMeta(
     val title: String,
+    val description: String,
+    val language: String,
     val blogTopUrl: String,
     val feedXmlUrl: String,
+    val faviconUrl: String,
+    val author: AuthorMeta,
 )
 
 data class EntryPageModel(
@@ -109,9 +117,17 @@ object Templates {
 
     private fun Configuration.toSiteMeta(): SiteMeta {
         return SiteMeta(
-            title = SITE_TITLE,
+            title = siteTitle,
+            description = siteDescription,
+            language = siteLanguage,
             blogTopUrl = blogTopUrl,
             feedXmlUrl = feedXmlUrl,
+            faviconUrl = faviconUrl,
+            author = AuthorMeta(
+                name = authorName,
+                url = authorUrl,
+                iconUrl = authorIconUrl,
+            )
         )
     }
 
