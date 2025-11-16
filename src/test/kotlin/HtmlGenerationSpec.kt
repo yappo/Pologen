@@ -30,6 +30,13 @@ class HtmlGenerationSpec : FunSpec({
             feedXmlPath = "feed.xml",
             feedXmlUrl = "/feed.xml",
             indexHtmlPath = "index.html",
+            siteTitle = "Example Site",
+            siteDescription = "Example Description",
+            siteLanguage = "en",
+            faviconUrl = "/favicon.png",
+            authorName = "@example",
+            authorUrl = "https://example.com/me",
+            authorIconUrl = "https://example.com/me.png",
         )
 
         createEntryHtml(conf, entry)
@@ -48,6 +55,13 @@ class HtmlGenerationSpec : FunSpec({
             feedXmlPath = "feed.xml",
             feedXmlUrl = "/feed.xml",
             indexHtmlPath = "out/index.html",
+            siteTitle = "Example Site",
+            siteDescription = "Example Description",
+            siteLanguage = "en",
+            faviconUrl = "/favicon.png",
+            authorName = "@example",
+            authorUrl = "https://example.com/me",
+            authorIconUrl = "https://example.com/me.png",
         )
         val entry = Entry(
             filePath = tmp.resolve("dummy/index.md"),

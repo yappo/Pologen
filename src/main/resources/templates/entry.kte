@@ -8,7 +8,7 @@
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <title>${model.title} - ${model.site.title}</title>
-    <link rel="icon" href="/favicon.png"/>
+    <link rel="icon" href="${model.site.faviconUrl}"/>
     <link rel="alternate" type="application/rss+xml" title="RSS Feed" href="${model.site.feedXmlUrl}"/>
 </head>
 <body>
@@ -23,8 +23,8 @@
     <div class="container">
         <h1>${model.title}</h1>
         <div>
-            <img src="https://pbs.twimg.com/profile_images/1770102954382831616/H3LXaTgp_normal.jpg"
-                 alt="yappo"
+            <img src="${model.site.author.iconUrl}"
+                 alt="${model.site.author.name}"
                  width="16"
                  height="16"/>
             ✍ : ${model.publishDateLocal}
@@ -37,7 +37,7 @@
 <footer>
     <p>
         <small>
-            <a href="https://x.com/yappo">@Yappo</a>
+            <a href="${model.site.author.url}">${model.site.author.name}</a>
         </small>
     </p>
 </footer>

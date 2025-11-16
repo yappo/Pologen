@@ -44,6 +44,13 @@ data class Configuration (
     val feedXmlPath: String,
     val feedXmlUrl: String,
     val indexHtmlPath: String,
+    val siteTitle: String,
+    val siteDescription: String,
+    val siteLanguage: String,
+    val faviconUrl: String,
+    val authorName: String,
+    val authorUrl: String,
+    val authorIconUrl: String,
 )
 
 @Serializable

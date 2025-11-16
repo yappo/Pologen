@@ -17,6 +17,13 @@ class RssSpec : FunSpec({
             feedXmlPath = "feed.xml",
             feedXmlUrl = "/feed.xml",
             indexHtmlPath = "index.html",
+            siteTitle = "Example Site",
+            siteDescription = "Example Description",
+            siteLanguage = "ja",
+            faviconUrl = "/favicon.png",
+            authorName = "@example",
+            authorUrl = "https://example.com/me",
+            authorIconUrl = "https://example.com/me.png",
         )
         val entry = Entry(
             filePath = tmp.resolve("dummy/index.md"),
@@ -33,11 +40,13 @@ class RssSpec : FunSpec({
         createRssXML(conf, out, listOf(entry))
 
         val xml = out.readText()
-        xml shouldContain "<title>YappoLogs2</title>"
+        xml shouldContain "<title>Example Site</title>"
         xml shouldContain "<item>"
         xml shouldContain "<title>Post &amp; Title</title>".replace("&amp;", "&") // title isn't escaped by code; ensure it appears as is
         xml shouldContain "<link>https://example.com/post/</link>"
         xml shouldContain "<pubDate>Wed, 01 Jan 2025 18:04:05 GMT</pubDate>"
         xml shouldContain "A&amp;B &lt; C"
+        xml shouldContain "<description>Example Description</description>"
+        xml shouldContain "<language>ja</language>"
     }
 })

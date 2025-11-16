@@ -7,7 +7,7 @@
 <head>
     <meta charset="UTF-8"/>
     <title>${model.site.title}</title>
-    <link rel="icon" href="/favicon.png"/>
+    <link rel="icon" href="${model.site.faviconUrl}"/>
     <link rel="alternate"
           type="application/rss+xml"
           title="RSS Feed"
@@ -33,7 +33,7 @@
     </main>
     <footer>
         <div>
-            <a href="https://x.com/yappo">@Yappo</a>
+            <a href="${model.site.author.url}">${model.site.author.name}</a>
         </div>
     </footer>
 </div>
