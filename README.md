@@ -37,6 +37,9 @@ authorIconUrl = "https://cdn.example.com/icon.png"
 - `siteTitle`, `siteDescription`, and `siteLanguage` configure the text metadata injected into both HTML templates and RSS.
 - `faviconUrl`, `authorName`, `authorUrl`, and `authorIconUrl` drive the header/footer branding, author credits, and avatar used on entry pages.
 
+## Styling Defaults
+The bundled templates include Tailwind CSS (via the CDN script) and daisyUI’s ready-made theme CSS by default. The markup sticks to standard Tailwind utility classes so you can swap in Flowbite, Bootstrap, or another framework in the future without rewriting the DOM structure. Upcoming releases will let you point the generator at your own `.kte` templates to fully customize the framework stack while still inheriting the configuration metadata described above.
+
 ## Content Layout
 Each post resides in its own directory beneath `documentRootPath` and must contain an `index.md`. The first line is treated as the title using the `title: Your Title` format; the remainder is parsed with JetBrains Markdown and rendered into HTML. The generator maintains a `meta.toml` alongside each entry that tracks `publishDate`, `updateDate`, and a body digest. The file is created on first run and the digest is refreshed whenever the Markdown content changes.
 

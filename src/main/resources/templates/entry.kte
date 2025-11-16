@@ -8,36 +8,46 @@
     <title>${model.title} - ${model.site.title}</title>
     <link rel="icon" href="${model.site.faviconUrl}"/>
     <link rel="alternate" type="application/rss+xml" title="RSS Feed" href="${model.site.feedXmlUrl}"/>
+@for (href in model.site.stylesheets)    <link rel="stylesheet" href="${href}"/> @endfor
+@for (src in model.site.scripts)    <script src="${src}"></script> @endfor
 </head>
-<body>
-<header>
-    <h1>
-        <a href="${model.site.blogTopUrl}">${model.site.title}</a>
-    </h1>
-</header>
-<article class="section">
-    <div class="eyecatch">
-    </div>
-    <div class="container">
-        <h1>${model.title}</h1>
-        <div>
-            <img src="${model.site.author.iconUrl}"
-                 alt="${model.site.author.name}"
-                 width="16"
-                 height="16"/>
-            ✍ : ${model.publishDateLocal}
+<body class="bg-slate-950 text-slate-100 font-sans">
+<div class="min-h-screen flex flex-col">
+    <header class="border-b border-slate-800 bg-slate-900/50">
+        <div class="mx-auto w-full max-w-4xl px-4 py-6 flex items-center justify-between gap-4">
+            <div>
+                <a href="${model.site.blogTopUrl}" class="text-xl font-semibold tracking-tight hover:text-slate-200 transition">
+                    ${model.site.title}
+                </a>
+            </div>
+            <div class="text-xs text-slate-400">
+                Tailwind CSS + daisyUI ready
+            </div>
         </div>
-        <div>
-            $unsafe{model.bodyHtml}
+    </header>
+    <main class="flex-1">
+        <article class="mx-auto w-full max-w-4xl px-4 py-10 space-y-8">
+            <div class="space-y-2">
+                <p class="text-sm text-slate-400">${model.publishDateLocal}</p>
+                <h1 class="text-3xl font-semibold text-white">${model.title}</h1>
+                <div class="flex items-center gap-3 text-sm text-slate-300">
+                    <img src="${model.site.author.iconUrl}"
+                         alt="${model.site.author.name}"
+                         class="h-8 w-8 rounded-full border border-slate-700"/>
+                    <a href="${model.site.author.url}" class="hover:text-white transition">${model.site.author.name}</a>
+                </div>
+            </div>
+            <div class="prose prose-invert max-w-none">
+                $unsafe{model.bodyHtml}
+            </div>
+        </article>
+    </main>
+    <footer class="border-t border-slate-800 bg-slate-900/60">
+        <div class="mx-auto w-full max-w-4xl px-4 py-6 text-sm text-slate-400 flex items-center justify-between">
+            <span>© ${model.site.title}</span>
+            <a href="${model.site.author.url}" class="hover:text-white transition">${model.site.author.name}</a>
         </div>
-    </div>
-</article>
-<footer>
-    <p>
-        <small>
-            <a href="${model.site.author.url}">${model.site.author.name}</a>
-        </small>
-    </p>
-</footer>
+    </footer>
+</div>
 </body>
 </html>

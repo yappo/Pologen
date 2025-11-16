@@ -44,6 +44,8 @@ class HtmlGenerationSpec : FunSpec({
         val written = dir.resolve("index.html").readText()
         written shouldContain "Hello <em>world</em>"
         written shouldContain entry.title
+        written shouldContain "cdn.tailwindcss.com"
+        written shouldContain "daisyui"
     }
 
     test("createIndexHtml writes index file listing entries") {
@@ -82,5 +84,6 @@ class HtmlGenerationSpec : FunSpec({
         html shouldContain "PostTitle"
         html shouldContain ">Thu, 02 Jan 2025 03:04:05 JST<"
         html shouldContain "href=\"https://example.com/post/\""
+        html shouldContain "cdn.tailwindcss.com"
     }
 })

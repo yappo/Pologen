@@ -10,28 +10,40 @@
           type="application/rss+xml"
           title="RSS Feed"
           href="${model.site.feedXmlUrl}"/>
+@for (href in model.site.stylesheets)    <link rel="stylesheet" href="${href}"/> @endfor
+@for (src in model.site.scripts)    <script src="${src}"></script> @endfor
 </head>
-<body>
-<div>
-    <header>
-        <div>
-            <a href="${model.site.blogTopUrl}">${model.site.title}</a>
+<body class="bg-slate-950 text-slate-100 font-sans">
+<div class="min-h-screen flex flex-col">
+    <header class="border-b border-slate-800 bg-slate-900/50">
+        <div class="mx-auto w-full max-w-5xl px-4 py-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <a href="${model.site.blogTopUrl}" class="text-2xl font-semibold tracking-tight hover:text-white transition">
+                ${model.site.title}
+            </a>
+            <a href="${model.site.feedXmlUrl}" class="text-sm text-slate-300 hover:text-white transition">RSS Feed</a>
         </div>
     </header>
-    <main>
-        <ul>
-            @for (entry in model.entries)
-                <li>
-                    <a href="${entry.href}">${entry.title}</a>
-                    <p>${entry.publishDateLocal}</p>
-                    <p>${entry.summary}</p>
-                </li>
-            @endfor
-        </ul>
+    <main class="flex-1">
+        <div class="mx-auto w-full max-w-5xl px-4 py-10">
+            <div class="grid gap-6">
+                @for (entry in model.entries)
+                    <article class="rounded-2xl border border-slate-800 bg-slate-900/40 p-6 shadow-lg shadow-slate-900/40">
+                        <div class="flex flex-col gap-2">
+                            <p class="text-xs uppercase tracking-wide text-slate-400">${entry.publishDateLocal}</p>
+                            <a href="${entry.href}" class="text-2xl font-semibold text-white hover:text-slate-200 transition">
+                                ${entry.title}
+                            </a>
+                            <p class="text-slate-300">${entry.summary}</p>
+                        </div>
+                    </article>
+                @endfor
+            </div>
+        </div>
     </main>
-    <footer>
-        <div>
-            <a href="${model.site.author.url}">${model.site.author.name}</a>
+    <footer class="border-t border-slate-800 bg-slate-900/60">
+        <div class="mx-auto w-full max-w-5xl px-4 py-6 text-sm text-slate-400 flex items-center justify-between">
+            <span>© ${model.site.title}</span>
+            <a href="${model.site.author.url}" class="hover:text-white transition">${model.site.author.name}</a>
         </div>
     </footer>
 </div>
