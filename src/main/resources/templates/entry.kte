@@ -1,7 +1,5 @@
 @import jp.yappo.pologen.EntryPageModel
-
 @param model:EntryPageModel
-
 <!DOCTYPE html>
 <html lang="en">
 <head>

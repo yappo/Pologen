@@ -1,7 +1,5 @@
 @import jp.yappo.pologen.IndexPageModel
-
 @param model:IndexPageModel
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
