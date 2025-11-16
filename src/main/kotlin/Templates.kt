@@ -21,6 +21,8 @@ data class SiteMeta(
     val blogTopUrl: String,
     val feedXmlUrl: String,
     val faviconUrl: String,
+    val stylesheets: List<String>,
+    val scripts: List<String>,
     val author: AuthorMeta,
 )
 
@@ -59,6 +61,13 @@ data class FeedPageModel(
 )
 
 object Templates {
+    private val DEFAULT_STYLESHEETS = listOf(
+        "https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css"
+    )
+    private val DEFAULT_SCRIPTS = listOf(
+        "https://cdn.tailwindcss.com"
+    )
+
     private val htmlTemplateEngine: TemplateEngine by lazy { createEngine(ContentType.Html) }
     private val plainTemplateEngine: TemplateEngine by lazy { createEngine(ContentType.Plain) }
 
@@ -123,6 +132,8 @@ object Templates {
             blogTopUrl = blogTopUrl,
             feedXmlUrl = feedXmlUrl,
             faviconUrl = faviconUrl,
+            stylesheets = DEFAULT_STYLESHEETS,
+            scripts = DEFAULT_SCRIPTS,
             author = AuthorMeta(
                 name = authorName,
                 url = authorUrl,
