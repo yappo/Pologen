@@ -25,6 +25,10 @@ class ConfigSpec : FunSpec({
             authorName = "@example"
             authorUrl = "https://example.com/me"
             authorIconUrl = "https://example.com/me.png"
+            imageThumbWidth = 320
+            imageFullMaxWidth = 1280
+            imageScaleMethod = "speed"
+            imageJpegQuality = 0.8
             """.trimIndent()
         )
         val conf = loadConfiguration(file)
@@ -41,5 +45,9 @@ class ConfigSpec : FunSpec({
         conf.authorName shouldBe "@example"
         conf.authorUrl shouldBe "https://example.com/me"
         conf.authorIconUrl shouldBe "https://example.com/me.png"
+        conf.imageThumbWidth shouldBe 320
+        conf.imageFullMaxWidth shouldBe 1280
+        conf.imageScaleMethod shouldBe org.imgscalr.Scalr.Method.SPEED
+        conf.imageJpegQuality shouldBe 0.8f
     }
 })
