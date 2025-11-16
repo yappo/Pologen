@@ -6,6 +6,8 @@ import gg.jte.output.StringOutput
 import gg.jte.resolve.ResourceCodeResolver
 import org.apache.commons.text.StringEscapeUtils
 import java.net.URI
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 
 data class AuthorMeta(
@@ -31,6 +33,8 @@ data class EntryPageModel(
     val title: String,
     val publishDateLocal: String,
     val bodyHtml: String,
+    val permalink: String,
+    val shareTargets: List<ShareTarget>,
 )
 
 data class IndexEntrySummary(
@@ -72,11 +76,14 @@ object Templates {
     private val plainTemplateEngine: TemplateEngine by lazy { createEngine(ContentType.Plain) }
 
     fun renderEntry(conf: Configuration, entry: Entry): String {
+        val permalink = URI(conf.documentBaseUrl + entry.urlPath).normalize().toString()
         val model = EntryPageModel(
             site = conf.toSiteMeta(),
             title = entry.title,
             publishDateLocal = entry.publishDateLocal,
             bodyHtml = entry.html,
+            permalink = permalink,
+            shareTargets = buildShareTargets(permalink, entry.title),
         )
         val output = StringOutput()
         htmlTemplateEngine.render("entry.kte", model, output)
@@ -150,4 +157,22 @@ object Templates {
         val parentClassLoader = Templates::class.java.classLoader
         return TemplateEngine.create(resolver, classDirectory, contentType, parentClassLoader)
     }
+    private fun buildShareTargets(permalink: String, title: String): List<ShareTarget> {
+        val encodedUrl = URLEncoder.encode(permalink, StandardCharsets.UTF_8)
+        val encodedTitle = URLEncoder.encode(title, StandardCharsets.UTF_8)
+        val xShareUrl = "https://x.com/intent/post?text=$encodedTitle%20$encodedUrl"
+        return listOf(
+            ShareTarget(
+                name = "x",
+                label = "X.com",
+                url = xShareUrl,
+            )
+        )
+    }
 }
+
+data class ShareTarget(
+    val name: String,
+    val label: String,
+    val url: String,
+)
