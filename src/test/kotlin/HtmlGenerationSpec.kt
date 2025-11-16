@@ -46,6 +46,7 @@ class HtmlGenerationSpec : FunSpec({
         written shouldContain entry.title
         written shouldContain "cdn.tailwindcss.com"
         written shouldContain "daisyui"
+        written shouldContain "Share on X"
     }
 
     test("createIndexHtml writes index file listing entries") {
