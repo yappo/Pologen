@@ -48,6 +48,9 @@ The bundled templates include Tailwind CSS (via the CDN script) and daisyUI’s 
 ## Image Handling
 Markdown image syntax (`![alt](photo.jpg)`) now renders responsive figures: Pologen resolves the image relative to the post folder, emits `photo-full.jpg` and `photo-thumb.jpg` with the configured sizes, and injects Tailwind-ready HTML that links the thumbnail to the full asset. Both variants are generated as JPEGs using imgscalr, and assets live next to the post's `index.html`, so they deploy automatically alongside the rest of the entry directory.
 
+## Sharing
+Entry pages include a share button that uses the Web Share API on iOS/Android, but still offers desktop-friendly controls (X.com intent link + copy-link helper). The share targets are built from an extensible list so additional services can be layered in later; for now the focus is on an X-compliant experience that respects X's posting requirements across browsers and devices.
+
 ## Content Layout
 Each post resides in its own directory beneath `documentRootPath` and must contain an `index.md`. The first line is treated as the title using the `title: Your Title` format; the remainder is parsed with JetBrains Markdown and rendered into HTML. The generator maintains a `meta.toml` alongside each entry that tracks `publishDate`, `updateDate`, and a body digest. The file is created on first run and the digest is refreshed whenever the Markdown content changes.
 
