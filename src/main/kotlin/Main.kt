@@ -331,14 +331,16 @@ fun processMarkdownImages(
 
         val escapedAlt = StringEscapeUtils.escapeHtml4(altText)
         val snippet = """
-<a href="${fullName}" target="_blank" rel="noopener">
-  <img
-    src="${thumbName}"
-    alt="$escapedAlt"
-    loading="lazy"
-    class="max-w-full h-auto rounded-xl shadow-md"
-  />
-</a>
+<figure class="my-8">
+  <a href="${fullName}" target="_blank" rel="noopener">
+    <img
+      src="${thumbName}"
+      alt="$escapedAlt"
+      loading="lazy"
+      class="max-w-full h-auto rounded-xl shadow-md"
+    />
+  </a>
+</figure>
         """.trimIndent()
         val placeholder = "IMG_PLACEHOLDER_${UUID.randomUUID()}"
         replacements[placeholder] = snippet
