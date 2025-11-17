@@ -69,7 +69,8 @@ object Templates {
         "https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css"
     )
     private val DEFAULT_SCRIPTS = listOf(
-        "https://cdn.tailwindcss.com"
+        "https://cdn.tailwindcss.com",
+        "/assets/pologen-images.js",
     )
 
     private val htmlTemplateEngine: TemplateEngine by lazy { createEngine(ContentType.Html) }

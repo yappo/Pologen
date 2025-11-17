@@ -45,5 +45,24 @@
         </div>
     </footer>
 </div>
+<div
+  id="pologen-image-overlay"
+  class="hidden fixed inset-0 z-50 bg-black/80 items-center justify-center"
+>
+  <button
+    type="button"
+    id="pologen-image-overlay-close"
+    class="absolute top-4 right-4 text-white text-2xl"
+    aria-label="Close"
+  >
+    ×
+  </button>
+  <img
+    id="pologen-image-overlay-img"
+    src=""
+    alt=""
+    class="max-w-[90vw] max-h-[90vh] rounded-xl shadow-2xl"
+  />
+</div>
 </body>
 </html>

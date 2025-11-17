@@ -144,6 +144,7 @@ fun main(args: Array<String>) {
         conf,
         configFile.parent.resolve(conf.documentRootPath).normalize(),
         docsRootDir)
+    copyOverlayScript(docsRootDir)
     createEntriesHtml(conf, entries)
 
     val indexEntries = entries.take(30)
@@ -190,7 +191,7 @@ fun loadMarkdown(conf: Configuration, rootDirPath: Path, filePath: Path): Entry 
     val relativePath = rootDirPath.relativize(filePath.parent).toString().replace(File.separatorChar, '/')
     val urlPath = "/${if (relativePath.isBlank()) "" else "$relativePath/"}"
 
-    val processedMarkdown = processMarkdownImages(markdown, filePath.parent, urlPath, conf)
+    val processedMarkdown = processMarkdownImages(markdown, filePath.parent, conf)
     val markdownWithImages = processedMarkdown.markdown
 
     // TODO: <body> タグ入れたくないからループ回してるの嫌な感じ
@@ -288,7 +289,6 @@ data class ProcessedMarkdown(
 fun processMarkdownImages(
     markdown: String,
     entryDir: Path,
-    entryUrlPath: String,
     conf: Configuration
 ): ProcessedMarkdown {
     val imageRegex = Regex("""!\[([^\]]*)]\(([^)]+)\)""")
@@ -332,14 +332,19 @@ fun processMarkdownImages(
         val escapedAlt = StringEscapeUtils.escapeHtml4(altText)
         val snippet = """
 <figure class="my-8">
-  <a href="${fullName}" target="_blank" rel="noopener">
+  <button
+    type="button"
+    class="pologen-image-thumb block"
+    data-full-src="${fullName}"
+    data-alt="$escapedAlt"
+  >
     <img
       src="${thumbName}"
       alt="$escapedAlt"
       loading="lazy"
-      class="max-w-full h-auto rounded-xl shadow-md"
+      class="max-w-full h-auto rounded-xl shadow-md my-4"
     />
-  </a>
+  </button>
 </figure>
         """.trimIndent()
         val placeholder = "IMG_PLACEHOLDER_${UUID.randomUUID()}"
@@ -352,4 +357,19 @@ fun processMarkdownImages(
 fun writeFile(path: Path, content: String){
     Files.writeString(path, content)
     println("Created: ${path.toAbsolutePath()}")
+}
+
+/**
+ * Copies the image overlay helper script into the document root so generated HTML can load it.
+ */
+fun copyOverlayScript(outputRoot: Path) {
+    val target = outputRoot.resolve("assets/pologen-images.js")
+    if (target.exists()) return
+    val resource = Templates::class.java.classLoader.getResourceAsStream("assets/pologen-images.js")
+        ?: return
+    Files.createDirectories(target.parent)
+    resource.use { input ->
+        Files.copy(input, target)
+    }
+    println("Created: ${target.toAbsolutePath()}")
 }
