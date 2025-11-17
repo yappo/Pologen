@@ -84,7 +84,7 @@ object Templates {
             publishDateLocal = entry.publishDateLocal,
             bodyHtml = entry.html,
             permalink = permalink,
-            shareTargets = buildShareTargets(permalink, entry.title),
+            shareTargets = buildShareTargets(permalink, entry.title, conf.siteTitle),
         )
         val output = StringOutput()
         htmlTemplateEngine.render("entry.kte", model, output)
@@ -160,9 +160,9 @@ object Templates {
         val parentClassLoader = Templates::class.java.classLoader
         return TemplateEngine.create(resolver, classDirectory, contentType, parentClassLoader)
     }
-    private fun buildShareTargets(permalink: String, title: String): List<ShareTarget> {
+    private fun buildShareTargets(permalink: String, title: String, siteTitle: String): List<ShareTarget> {
         val encodedUrl = URLEncoder.encode(permalink, StandardCharsets.UTF_8)
-        val encodedTitle = URLEncoder.encode(title, StandardCharsets.UTF_8)
+        val encodedTitle = URLEncoder.encode("$siteTitle - $title", StandardCharsets.UTF_8)
         val xShareUrl = "https://x.com/intent/post?text=$encodedTitle%20$encodedUrl"
         return listOf(
             ShareTarget(
