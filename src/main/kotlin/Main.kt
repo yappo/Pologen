@@ -24,6 +24,7 @@ import java.security.MessageDigest
 import kotlin.io.path.*
 import org.imgscalr.Scalr
 import org.apache.commons.text.StringEscapeUtils
+import java.util.UUID
 
 data class Entry(
     val filePath: Path,
@@ -189,14 +190,18 @@ fun loadMarkdown(conf: Configuration, rootDirPath: Path, filePath: Path): Entry 
     val relativePath = rootDirPath.relativize(filePath.parent).toString().replace(File.separatorChar, '/')
     val urlPath = "/${if (relativePath.isBlank()) "" else "$relativePath/"}"
 
-    val markdownWithImages = processMarkdownImages(markdown, filePath.parent, urlPath, conf)
+    val processedMarkdown = processMarkdownImages(markdown, filePath.parent, urlPath, conf)
+    val markdownWithImages = processedMarkdown.markdown
 
     // TODO: <body> タグ入れたくないからループ回してるの嫌な感じ
     val flavour = CommonMarkFlavourDescriptor()
     val parsedTree = MarkdownParser(flavour).buildMarkdownTreeFromString(markdownWithImages)
-    val html = parsedTree.children.map {
+    val htmlGenerated = parsedTree.children.map {
         HtmlGenerator(markdownWithImages, it, flavour).generateHtml()
     }.joinToString(separator = "") { it }
+    val html = processedMarkdown.replacements.entries.fold(htmlGenerated) { acc, (placeholder, snippet) ->
+        acc.replace(placeholder, snippet)
+    }
     val body = stripHtml(html)
     val bodyDigest = DIGEST.digest(body.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
 
@@ -273,16 +278,22 @@ fun createRssXML(conf: Configuration, feedXmlPath: Path, entries: List<Entry>) {
 }
 
 /**
- * Rewrites Markdown image syntax to responsive HTML and generates resized JPEG assets.
+ * Rewrites Markdown image syntax to responsive HTML placeholders and generates resized assets.
  */
+data class ProcessedMarkdown(
+    val markdown: String,
+    val replacements: Map<String, String>,
+)
+
 fun processMarkdownImages(
     markdown: String,
     entryDir: Path,
     entryUrlPath: String,
     conf: Configuration
-): String {
+): ProcessedMarkdown {
     val imageRegex = Regex("""!\[([^\]]*)]\(([^)]+)\)""")
-    return imageRegex.replace(markdown) { matchResult ->
+    val replacements = mutableMapOf<String, String>()
+    val updated = imageRegex.replace(markdown) { matchResult ->
         val altText = matchResult.groupValues.getOrNull(1)?.trim().orEmpty()
         val relativeSource = matchResult.groupValues.getOrNull(2)?.trim().orEmpty()
         if (relativeSource.isBlank()) {
@@ -319,17 +330,23 @@ fun processMarkdownImages(
         }
 
         val escapedAlt = StringEscapeUtils.escapeHtml4(altText)
-        """
-<a href="${entryUrlPath}${fullName}" target="_blank" rel="noopener">
-  <img
-    src="${entryUrlPath}${thumbName}"
-    alt="$escapedAlt"
-    loading="lazy"
-    class="max-w-full h-auto rounded-xl shadow-md"
-  />
-</a>
+        val snippet = """
+<figure class="my-8">
+  <a href="${fullName}" target="_blank" rel="noopener">
+    <img
+      src="${thumbName}"
+      alt="$escapedAlt"
+      loading="lazy"
+      class="max-w-full h-auto rounded-xl shadow-md"
+    />
+  </a>
+</figure>
         """.trimIndent()
+        val placeholder = "IMG_PLACEHOLDER_${UUID.randomUUID()}"
+        replacements[placeholder] = snippet
+        placeholder
     }
+    return ProcessedMarkdown(updated, replacements)
 }
 
 fun writeFile(path: Path, content: String){
