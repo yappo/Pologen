@@ -33,6 +33,9 @@ imageThumbWidth = 480
 imageFullMaxWidth = 1920
 imageScaleMethod = "quality"
 imageJpegQuality = 0.9
+# Optional extra assets
+# stylesheets = ["/assets/custom.css"]
+# scripts = ["/assets/custom.js"]
 ```
 
 - `documentRootPath` points to the directory containing your posts.
@@ -43,10 +46,13 @@ imageJpegQuality = 0.9
 - `imageThumbWidth`, `imageFullMaxWidth`, `imageScaleMethod`, and `imageJpegQuality` govern thumbnail/full-size resizing and JPEG quality; supported `imageScaleMethod` values are `speed`, `balanced`, `quality`, and `ultra_quality`.
 
 ## Styling Defaults
-The bundled templates include Tailwind CSS (via the CDN script) and daisyUI’s ready-made theme CSS by default. The markup sticks to standard Tailwind utility classes so you can swap in Flowbite, Bootstrap, or another framework in the future without rewriting the DOM structure. Upcoming releases will let you point the generator at your own `.kte` templates to fully customize the framework stack while still inheriting the configuration metadata described above.
+The bundled templates include Tailwind CSS (via the CDN script `https://cdn.tailwindcss.com`) and daisyUI’s ready-made theme CSS (`https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css`) by default, plus the overlay helper script at `/assets/pologen-images.js`. The markup sticks to standard Tailwind utility classes so you can swap in Flowbite, Bootstrap, or another framework in the future without rewriting the DOM structure. Upcoming releases will let you point the generator at your own `.kte` templates to fully customize the framework stack while still inheriting the configuration metadata described above.
 
 ## Image Handling
 Markdown image syntax (`![alt](photo.jpg)`) now renders responsive figures: Pologen resolves the image relative to the post folder, emits `photo-full.jpg` and `photo-thumb.jpg` with the configured sizes, and injects Tailwind-ready HTML that links the thumbnail to the full asset. Both variants are generated as JPEGs using imgscalr, and assets live next to the post's `index.html`, so they deploy automatically alongside the rest of the entry directory.
+
+## Custom Assets
+If you need extra CSS or JS beyond the defaults, add `stylesheets = ["..."]` or `scripts = ["..."]` to `config.toml`. The defaults already include Tailwind/daisyUI plus the image overlay helper (`/assets/pologen-images.js`), and your entries will load any additional assets you declare.
 
 ## Sharing
 Entry pages include a share button that uses the Web Share API on iOS/Android, but still offers desktop-friendly controls (X.com intent link + copy-link helper). The share targets are built from an extensible list so additional services can be layered in later; for now the focus is on an X-compliant experience that respects X's posting requirements across browsers and devices.
