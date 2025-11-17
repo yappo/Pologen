@@ -65,6 +65,8 @@ data class Configuration (
     @Serializable(with = ScalrMethodSerializer::class)
     val imageScaleMethod: Scalr.Method = Scalr.Method.QUALITY,
     val imageJpegQuality: Float = 0.9f,
+    val stylesheets: List<String> = emptyList(),
+    val scripts: List<String> = emptyList(),
 )
 
 /**

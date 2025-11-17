@@ -133,6 +133,8 @@ object Templates {
     }
 
     private fun Configuration.toSiteMeta(): SiteMeta {
+        val resolvedStyles = if (stylesheets.isNotEmpty()) stylesheets else DEFAULT_STYLESHEETS
+        val resolvedScripts = if (scripts.isNotEmpty()) scripts else DEFAULT_SCRIPTS
         return SiteMeta(
             title = siteTitle,
             description = siteDescription,
@@ -140,8 +142,8 @@ object Templates {
             blogTopUrl = blogTopUrl,
             feedXmlUrl = feedXmlUrl,
             faviconUrl = faviconUrl,
-            stylesheets = DEFAULT_STYLESHEETS,
-            scripts = DEFAULT_SCRIPTS,
+            stylesheets = resolvedStyles,
+            scripts = resolvedScripts,
             author = AuthorMeta(
                 name = authorName,
                 url = authorUrl,

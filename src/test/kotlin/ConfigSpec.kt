@@ -29,6 +29,8 @@ class ConfigSpec : FunSpec({
             imageFullMaxWidth = 1280
             imageScaleMethod = "speed"
             imageJpegQuality = 0.8
+            stylesheets = ["/custom.css"]
+            scripts = ["/custom.js"]
             """.trimIndent()
         )
         val conf = loadConfiguration(file)
@@ -49,5 +51,7 @@ class ConfigSpec : FunSpec({
         conf.imageFullMaxWidth shouldBe 1280
         conf.imageScaleMethod shouldBe org.imgscalr.Scalr.Method.SPEED
         conf.imageJpegQuality shouldBe 0.8f
+        conf.stylesheets shouldBe listOf("/custom.css")
+        conf.scripts shouldBe listOf("/custom.js")
     }
 })
