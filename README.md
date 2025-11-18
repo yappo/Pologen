@@ -73,6 +73,9 @@ Entry pages include a share button that uses the Web Share API on iOS/Android, b
 ## Content Layout
 Each post resides in its own directory beneath `documentRootPath` and must contain an `index.md`. The first line is treated as the title using the `title: Your Title` format; the remainder is parsed with JetBrains Markdown and rendered into HTML. The generator maintains a `meta.toml` alongside each entry that tracks `publishDate`, `updateDate`, and a body digest. The file is created on first run and the digest is refreshed whenever the Markdown content changes.
 
+### Markdown heading rules
+- The top-of-page title is rendered as an `<h1>` from the `title:` line, so keep in-body headings at `##` (h2) or deeper. In-body `#` headings are intentionally excluded from TOC generation.
+
 ## Generated Output
 - A fully rendered `index.html` is emitted per entry directory, including metadata, author links, and embedded Markdown content.
 - `indexHtmlPath` receives a landing page that lists up to 30 most recent entries (ordered lexicographically by directory), showing publication time in JST and a 140-character summary derived from the plain-text body.
