@@ -47,23 +47,26 @@ object OGPGenerator {
         val siteFont = baseFont.deriveFont(Font.BOLD, 42f)
         val titleFont = baseFont.deriveFont(Font.BOLD, 64f)
         val bodyFont = baseFont.deriveFont(Font.PLAIN, 30f)
+        val siteLineHeight = (siteFont.size2D * 1.4f).toInt()
+        val titleLineHeight = (titleFont.size2D * 1.3f).toInt()
+        val bodyLineHeight = (bodyFont.size2D * 1.6f).toInt()
 
         val margin = 64
         var cursorY = margin
 
         g.color = titleColor
         g.font = siteFont
-        cursorY = drawWrappedText(g, siteTitle, margin, cursorY, width - margin * 2, 50)
+        cursorY = drawWrappedText(g, siteTitle, margin, cursorY, width - margin * 2, siteLineHeight)
 
         cursorY += 12
         g.color = titleColor
         g.font = titleFont
-        cursorY = drawWrappedText(g, entryTitle, margin, cursorY, width - margin * 2, 70)
+        cursorY = drawWrappedText(g, entryTitle, margin, cursorY, width - margin * 2, titleLineHeight)
 
         cursorY += 18
         g.color = bodyColor
         g.font = bodyFont
-        cursorY = drawWrappedText(g, description.orEmpty(), margin, cursorY, width - margin * 2, 46, maxLines = 5)
+        cursorY = drawWrappedText(g, description.orEmpty(), margin, cursorY, width - margin * 2, bodyLineHeight, maxLines = 5)
 
         drawAuthorIcon(g, conf, width, height, margin)
 
@@ -112,20 +115,44 @@ object OGPGenerator {
         val fm = g.fontMetrics
         val words = text.split(Regex("\\s+"))
         val lines = mutableListOf<String>()
-        var current = StringBuilder()
-        for (word in words) {
-            val candidate = if (current.isEmpty()) word else current.toString() + " " + word
-            val w = fm.stringWidth(candidate)
-            if (w > maxWidth && current.isNotEmpty()) {
-                lines.add(current.toString())
-                current = StringBuilder(word)
-            } else {
-                current = StringBuilder(candidate)
+
+        if (words.size == 1) {
+            val t = text
+            var currentLine = StringBuilder()
+            for (ch in t) {
+                val candidate = currentLine.toString() + ch
+                val w = fm.stringWidth(candidate)
+                if (w > maxWidth && currentLine.isNotEmpty()) {
+                    lines.add(currentLine.toString())
+                    if (lines.size >= maxLines) {
+                        break
+                    }
+                    currentLine = StringBuilder().append(ch)
+                } else {
+                    currentLine.append(ch)
+                }
             }
-            if (lines.size >= maxLines) break
-        }
-        if (lines.size < maxLines && current.isNotEmpty()) {
-            lines.add(current.toString())
+            if (lines.size < maxLines && currentLine.isNotEmpty()) {
+                lines.add(currentLine.toString())
+            }
+        } else {
+            var current = StringBuilder()
+            for (word in words) {
+                val candidate = if (current.isEmpty()) word else current.toString() + " " + word
+                val w = fm.stringWidth(candidate)
+                if (w > maxWidth && current.isNotEmpty()) {
+                    lines.add(current.toString())
+                    current = StringBuilder(word)
+                } else {
+                    current = StringBuilder(candidate)
+                }
+                if (lines.size >= maxLines) {
+                    break
+                }
+            }
+            if (lines.size < maxLines && current.isNotEmpty()) {
+                lines.add(current.toString())
+            }
         }
 
         var y = startY
