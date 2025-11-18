@@ -11,6 +11,8 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.*
+import com.akuleshov7.ktoml.TomlInputConfig
+import com.akuleshov7.ktoml.TomlOutputConfig
 import com.akuleshov7.ktoml.file.TomlFileWriter
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
@@ -19,6 +21,7 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.modules.EmptySerializersModule
 import java.net.URI
 import java.security.MessageDigest
 import kotlin.io.path.*
@@ -266,95 +269,84 @@ fun loadMarkdown(conf: Configuration, rootDirPath: Path, filePath: Path, configB
     // meta file
     val currentDatTime = currentDateTimeInJST()
     val metaFilePath = filePath.parent.resolve("meta.toml")
-    val meta = if (metaFilePath.isRegularFile()) { // TODO: 雑なの直す。。
-        try {
-            TomlFileReader().decodeFromFile(
+    val metaSummary = truncateSummary(body)
+    var parsedFromLegacy = false
+    val tomlLenient = TomlFileReader(
+        TomlInputConfig(ignoreUnknownNames = true, allowNullValues = true),
+        TomlOutputConfig(),
+        EmptySerializersModule()
+    )
+    val existingMeta = if (metaFilePath.isRegularFile()) {
+        runCatching {
+            tomlLenient.decodeFromFile(
                 EntryMeta.serializer(),
                 metaFilePath.toAbsolutePath().toString()
             )
-        } catch (ex: Exception) {
-            // XXX: 古いバージョンの meta.toml の場合読み込むためのワークアラウンドだが、ここもう少し後方互換性をスマートに対応したい
+        }.getOrElse { ex ->
             val isMissing = ex::class.simpleName == "MissingRequiredPropertyException"
             if (isMissing) {
                 println("Failed to read meta.toml ($metaFilePath), attempting legacy parse. ${ex.message}")
                 val legacy = runCatching {
-                    TomlFileReader().decodeFromFile(EntryMetaLegacy.serializer(), metaFilePath.toAbsolutePath().toString())
+                    tomlLenient.decodeFromFile(EntryMetaLegacy.serializer(), metaFilePath.toAbsolutePath().toString())
                 }.getOrNull()
                 if (legacy != null) {
-                    val upgraded = EntryMeta(
+                    parsedFromLegacy = true
+                    EntryMeta(
                         publishDate = legacy.publishDate,
                         updateDate = legacy.updateDate,
                         bodyMd5 = legacy.bodyMd5,
                         title = title,
-                        summary = truncateSummary(body),
+                        summary = metaSummary,
                         toc = tocItems
                     )
-                    TomlFileWriter().encodeToFile(
-                        EntryMeta.serializer(),
-                        upgraded,
-                        metaFilePath.toAbsolutePath().toString()
-                    )
-                    println("Upgraded meta: ${metaFilePath.toAbsolutePath()}")
-                    upgraded
                 } else {
-                    val createMeta = EntryMeta(currentDatTime, currentDatTime, bodyDigest, title = title, summary = truncateSummary(body), toc = tocItems)
-                    TomlFileWriter().encodeToFile(
-                        EntryMeta.serializer(),
-                        createMeta,
-                        metaFilePath.toAbsolutePath().toString()
-                    )
-                    println("Created: ${metaFilePath.toAbsolutePath()}")
-                    createMeta
+                    null
                 }
             } else {
-                throw ex
+                println("Failed to parse meta.toml ($metaFilePath): ${ex.message}. Recreating.")
+                null
             }
         }
     } else {
-        val createMeta = EntryMeta(currentDatTime, currentDatTime, bodyDigest, title = title, summary = truncateSummary(body), toc = tocItems)
-        TomlFileWriter().encodeToFile(
-            EntryMeta.serializer(),
-            createMeta,
-            metaFilePath.toAbsolutePath().toString()
-        )
-        println("Created: ${metaFilePath.toAbsolutePath()}")
-
-        createMeta
+        null
     }
 
-    val metaNeedsUpdate = meta.title == null || meta.summary == null || meta.toc.isEmpty() || meta.bodyMd5 != bodyDigest
-    val publishDate = if (meta.bodyMd5 != bodyDigest) {
-        val newMeta = meta.copy(bodyMd5 = bodyDigest, updateDate = currentDatTime, title = title, summary = truncateSummary(body), toc = tocItems)
+    val baseMeta = existingMeta ?: EntryMeta(
+        publishDate = currentDatTime,
+        updateDate = currentDatTime,
+        bodyMd5 = bodyDigest,
+        title = title,
+        summary = metaSummary,
+        toc = tocItems
+    )
+    val needsUpdate = existingMeta == null ||
+        parsedFromLegacy ||
+        baseMeta.bodyMd5 != bodyDigest ||
+        baseMeta.title != title ||
+        baseMeta.summary != metaSummary ||
+        baseMeta.toc != tocItems
+
+    val meta = if (needsUpdate) {
+        val updated = baseMeta.copy(
+            bodyMd5 = bodyDigest,
+            title = title,
+            summary = metaSummary,
+            toc = tocItems,
+            updateDate = currentDatTime
+        )
         TomlFileWriter().encodeToFile(
             EntryMeta.serializer(),
-            newMeta,
+            updated,
             metaFilePath.toAbsolutePath().toString()
         )
-        println("Updated: ${metaFilePath.toAbsolutePath()}")
-
-        newMeta.publishDate
+        val label = if (existingMeta == null) "Created" else "Updated"
+        println("$label: ${metaFilePath.toAbsolutePath()}")
+        updated
     } else {
-        meta.publishDate
+        baseMeta
     }
-    if (!metaNeedsUpdate) {
-        val keepMeta = meta.copy(title = meta.title ?: title, summary = meta.summary ?: truncateSummary(body), toc = if (meta.toc.isEmpty()) tocItems else meta.toc)
-        if (keepMeta != meta) {
-            TomlFileWriter().encodeToFile(
-                EntryMeta.serializer(),
-                keepMeta,
-                metaFilePath.toAbsolutePath().toString()
-            )
-            println("Updated: ${metaFilePath.toAbsolutePath()}")
-        }
-    } else if (metaNeedsUpdate && meta.bodyMd5 == bodyDigest) {
-        val newMeta = meta.copy(title = title, summary = truncateSummary(body), toc = tocItems)
-        TomlFileWriter().encodeToFile(
-            EntryMeta.serializer(),
-            newMeta,
-            metaFilePath.toAbsolutePath().toString()
-        )
-        println("Updated: ${metaFilePath.toAbsolutePath()}")
-    }
+
+    val publishDate = meta.publishDate
 
     var ogpImageUrl: String? = null
     var ogpDescription: String? = null
