@@ -33,6 +33,15 @@ imageThumbWidth = 480
 imageFullMaxWidth = 1920
 imageScaleMethod = "quality"
 imageJpegQuality = 0.9
+ogpEnabled = true
+ogpWidth = 1200
+ogpHeight = 630
+ogpBackgroundColor = "#101827"
+ogpTitleColor = "#FFFFFF"
+ogpBodyColor = "#E5E7EB"
+ogpAccentColor = "#F97316"
+ogpFontPath = "/absolute/or/relative/path/to/fontfile.ttf"
+ogpAuthorIconPath = "/absolute/or/relative/path/to/author_icon.png"
 # Optional extra assets
 # stylesheets = ["/assets/custom.css"]
 # scripts = ["/assets/custom.js"]
@@ -44,6 +53,7 @@ imageJpegQuality = 0.9
 - `siteTitle`, `siteDescription`, and `siteLanguage` configure the text metadata injected into both HTML templates and RSS.
 - `faviconUrl`, `authorName`, `authorUrl`, and `authorIconUrl` drive the header/footer branding, author credits, and avatar used on entry pages.
 - `imageThumbWidth`, `imageFullMaxWidth`, `imageScaleMethod`, and `imageJpegQuality` govern thumbnail/full-size resizing and JPEG quality; supported `imageScaleMethod` values are `speed`, `balanced`, `quality`, and `ultra_quality`.
+- OGP: enable with `ogpEnabled = true`; control size (`ogpWidth`/`ogpHeight`), colors (`ogpBackgroundColor`/`ogpTitleColor`/`ogpBodyColor`/`ogpAccentColor`), and optional assets (`ogpFontPath`, `ogpAuthorIconPath`). If disabled or omitted, OGP image generation and meta tags are skipped entirely.
 
 ## Styling Defaults
 The bundled templates include Tailwind CSS (via the CDN script `https://cdn.tailwindcss.com`) and daisyUI’s ready-made theme CSS (`https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css`) by default, plus the overlay helper script at `/assets/pologen-images.js`. The markup sticks to standard Tailwind utility classes so you can swap in Flowbite, Bootstrap, or another framework in the future without rewriting the DOM structure. Upcoming releases will let you point the generator at your own `.kte` templates to fully customize the framework stack while still inheriting the configuration metadata described above.

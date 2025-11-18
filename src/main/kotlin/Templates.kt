@@ -35,6 +35,8 @@ data class EntryPageModel(
     val bodyHtml: String,
     val permalink: String,
     val shareTargets: List<ShareTarget>,
+    val ogpDescription: String?,
+    val ogpImageUrl: String?,
 )
 
 data class IndexEntrySummary(
@@ -85,6 +87,8 @@ object Templates {
             bodyHtml = entry.html,
             permalink = permalink,
             shareTargets = buildShareTargets(permalink, entry.title, conf.siteTitle),
+            ogpDescription = entry.ogpDescription,
+            ogpImageUrl = entry.ogpImageUrl,
         )
         val output = StringOutput()
         htmlTemplateEngine.render("entry.kte", model, output)

@@ -8,6 +8,13 @@
     <title>${model.title} - ${model.site.title}</title>
     <link rel="icon" href="${model.site.faviconUrl}"/>
     <link rel="alternate" type="application/rss+xml" title="RSS Feed" href="${model.site.feedXmlUrl}"/>
+@if (model.ogpImageUrl != null)
+    <meta property="og:title" content="${model.title}"/>
+    @if (model.ogpDescription != null)
+        <meta property="og:description" content="${model.ogpDescription}"/>
+    @endif
+    <meta property="og:image" content="${model.ogpImageUrl}"/>
+@endif
 @for (href in model.site.stylesheets)    <link rel="stylesheet" href="${href}"/> @endfor
 @for (src in model.site.scripts)    <script src="${src}"></script> @endfor
 </head>
