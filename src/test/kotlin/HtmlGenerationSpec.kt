@@ -39,7 +39,7 @@ class HtmlGenerationSpec : FunSpec({
             authorIconUrl = "https://example.com/me.png",
         )
 
-        createEntryHtml(conf, entry)
+        createEntryHtml(conf, entry, listOf(entry))
 
         val written = dir.resolve("index.html").readText()
         written shouldContain "Hello <em>world</em>"

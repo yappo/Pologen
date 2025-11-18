@@ -37,6 +37,10 @@ data class EntryPageModel(
     val shareTargets: List<ShareTarget>,
     val ogpDescription: String?,
     val ogpImageUrl: String?,
+    val toc: List<TocEntry>,
+    val recentEntries: List<RecentEntry>,
+    val links: Map<String, String>,
+    val rssUrl: String,
 )
 
 data class IndexEntrySummary(
@@ -49,6 +53,9 @@ data class IndexEntrySummary(
 data class IndexPageModel(
     val site: SiteMeta,
     val entries: List<IndexEntrySummary>,
+    val recentEntries: List<RecentEntry>,
+    val links: Map<String, String>,
+    val rssUrl: String,
 )
 
 data class FeedEntryModel(
@@ -72,13 +79,13 @@ object Templates {
     )
     private val DEFAULT_SCRIPTS = listOf(
         "https://cdn.tailwindcss.com",
-        "/assets/pologen-images.js",
+        "/assets/pologen.js",
     )
 
     private val htmlTemplateEngine: TemplateEngine by lazy { createEngine(ContentType.Html) }
     private val plainTemplateEngine: TemplateEngine by lazy { createEngine(ContentType.Plain) }
 
-    fun renderEntry(conf: Configuration, entry: Entry): String {
+    fun renderEntry(conf: Configuration, entry: Entry, recentEntries: List<RecentEntry>): String {
         val permalink = URI(conf.documentBaseUrl + entry.urlPath).normalize().toString()
         val model = EntryPageModel(
             site = conf.toSiteMeta(),
@@ -89,13 +96,17 @@ object Templates {
             shareTargets = buildShareTargets(permalink, entry.title, conf.siteTitle),
             ogpDescription = entry.ogpDescription,
             ogpImageUrl = entry.ogpImageUrl,
+            toc = entry.toc,
+            recentEntries = recentEntries,
+            links = sanitizeLinks(conf.links),
+            rssUrl = conf.feedXmlUrl,
         )
         val output = StringOutput()
         htmlTemplateEngine.render("entry.kte", model, output)
         return output.toString()
     }
 
-    fun renderIndex(conf: Configuration, entries: List<Entry>): String {
+    fun renderIndex(conf: Configuration, entries: List<Entry>, recentEntries: List<RecentEntry>): String {
         val viewEntries = entries.map { entry ->
             val href = URI(conf.documentBaseUrl + entry.urlPath).normalize().toString()
             IndexEntrySummary(
@@ -108,6 +119,9 @@ object Templates {
         val model = IndexPageModel(
             site = conf.toSiteMeta(),
             entries = viewEntries,
+            recentEntries = recentEntries,
+            links = sanitizeLinks(conf.links),
+            rssUrl = conf.feedXmlUrl,
         )
         val output = StringOutput()
         htmlTemplateEngine.render("index.kte", model, output)
@@ -183,3 +197,24 @@ data class ShareTarget(
     val label: String,
     val url: String,
 )
+
+data class RecentEntry(
+    val title: String,
+    val href: String,
+    val publishDateLocal: String,
+    val isCurrent: Boolean = false,
+)
+
+fun sanitizeLinks(links: Map<String, String>): Map<String, String> {
+    val sanitized = LinkedHashMap<String, String>()
+    links.forEach { (k, v) ->
+        val trimmed = k.trim()
+        val label = when {
+            trimmed.startsWith("\"") && trimmed.endsWith("\"") && trimmed.length >= 2 ->
+                trimmed.substring(1, trimmed.length - 1)
+            else -> trimmed
+        }
+        sanitized[label] = v
+    }
+    return sanitized
+}

@@ -26,6 +26,7 @@ import org.imgscalr.Scalr
 import org.apache.commons.text.StringEscapeUtils
 import java.util.UUID
 import java.awt.Color
+import java.util.LinkedHashMap
 
 data class Entry(
     val filePath: Path,
@@ -38,6 +39,7 @@ data class Entry(
     val body: String,
     val ogpImageUrl: String? = null,
     val ogpDescription: String? = null,
+    val toc: List<TocEntry> = emptyList(),
 ) {
     val summary: String by lazy {
         if (body.length > 140) {
@@ -79,6 +81,8 @@ data class Configuration (
     val ogpAccentColor: String = "#F97316",
     val ogpFontPath: String? = null,
     val ogpAuthorIconPath: String? = null,
+    val recentEntryCount: Int = 10,
+    val links: LinkedHashMap<String, String> = LinkedHashMap(),
 )
 
 /**
@@ -114,7 +118,10 @@ object ScalrMethodSerializer : KSerializer<Scalr.Method> {
 data class EntryMeta(
     val publishDate: String,
     val updateDate: String,
-    val bodyMd5: String
+    val bodyMd5: String,
+    val title: String? = null,
+    val summary: String? = null,
+    val toc: List<TocEntry> = emptyList(),
 )
 
 val DIGEST = MessageDigest.getInstance("SHA-256") ?: error("Failed to make a digest instance.")
@@ -154,6 +161,11 @@ fun truncateForOgp(text: String, limit: Int = 100): String {
     val originalCount = normalized.codePoints().count()
     return if (originalCount > limit) builder.append("…").toString() else builder.toString()
 }
+
+/**
+ * Generates a summary from plain text, keeping roughly [limit] code points.
+ */
+fun truncateSummary(text: String, limit: Int = 100): String = truncateForOgp(text, limit)
 
 fun main(args: Array<String>) {
     if (args.isEmpty()) {
@@ -220,6 +232,7 @@ fun loadMarkdown(conf: Configuration, rootDirPath: Path, filePath: Path, configB
 
     val title = titleLine.removePrefix("title: ").trim().ifBlank { "Untitled" }
     val markdown = lines.drop(1).joinToString("\n").trim()
+    val tocItems = extractToc(markdown)
 
     val relativePath = rootDirPath.relativize(filePath.parent).toString().replace(File.separatorChar, '/')
     val urlPath = "/${if (relativePath.isBlank()) "" else "$relativePath/"}"
@@ -233,7 +246,8 @@ fun loadMarkdown(conf: Configuration, rootDirPath: Path, filePath: Path, configB
     val htmlGenerated = parsedTree.children.map {
         HtmlGenerator(markdownWithImages, it, flavour).generateHtml()
     }.joinToString(separator = "") { it }
-    val html = processedMarkdown.replacements.entries.fold(htmlGenerated) { acc, (placeholder, snippet) ->
+    val htmlWithIds = injectHeadingIds(htmlGenerated, tocItems)
+    val html = processedMarkdown.replacements.entries.fold(htmlWithIds) { acc, (placeholder, snippet) ->
         acc.replace(placeholder, snippet)
     }
     val body = stripHtml(html)
@@ -250,7 +264,7 @@ fun loadMarkdown(conf: Configuration, rootDirPath: Path, filePath: Path, configB
         TomlFileReader().decodeFromFile(EntryMeta.serializer(),
                                         metaFilePath.toAbsolutePath().toString())
     } else {
-        val createMeta = EntryMeta(currentDatTime, currentDatTime, bodyDigest)
+        val createMeta = EntryMeta(currentDatTime, currentDatTime, bodyDigest, title = title, summary = truncateSummary(body), toc = tocItems)
         TomlFileWriter().encodeToFile(
             EntryMeta.serializer(),
             createMeta,
@@ -261,8 +275,9 @@ fun loadMarkdown(conf: Configuration, rootDirPath: Path, filePath: Path, configB
         createMeta
     }
 
+    val metaNeedsUpdate = meta.title == null || meta.summary == null || meta.toc.isEmpty() || meta.bodyMd5 != bodyDigest
     val publishDate = if (meta.bodyMd5 != bodyDigest) {
-        val newMeta = meta.copy(bodyMd5 = bodyDigest, updateDate = currentDatTime)
+        val newMeta = meta.copy(bodyMd5 = bodyDigest, updateDate = currentDatTime, title = title, summary = truncateSummary(body), toc = tocItems)
         TomlFileWriter().encodeToFile(
             EntryMeta.serializer(),
             newMeta,
@@ -273,6 +288,25 @@ fun loadMarkdown(conf: Configuration, rootDirPath: Path, filePath: Path, configB
         newMeta.publishDate
     } else {
         meta.publishDate
+    }
+    if (!metaNeedsUpdate) {
+        val keepMeta = meta.copy(title = meta.title ?: title, summary = meta.summary ?: truncateSummary(body), toc = if (meta.toc.isEmpty()) tocItems else meta.toc)
+        if (keepMeta != meta) {
+            TomlFileWriter().encodeToFile(
+                EntryMeta.serializer(),
+                keepMeta,
+                metaFilePath.toAbsolutePath().toString()
+            )
+            println("Updated: ${metaFilePath.toAbsolutePath()}")
+        }
+    } else if (metaNeedsUpdate && meta.bodyMd5 == bodyDigest) {
+        val newMeta = meta.copy(title = title, summary = truncateSummary(body), toc = tocItems)
+        TomlFileWriter().encodeToFile(
+            EntryMeta.serializer(),
+            newMeta,
+            metaFilePath.toAbsolutePath().toString()
+        )
+        println("Updated: ${metaFilePath.toAbsolutePath()}")
     }
 
     var ogpImageUrl: String? = null
@@ -317,7 +351,8 @@ fun loadMarkdown(conf: Configuration, rootDirPath: Path, filePath: Path, configB
         html,
         body,
         ogpImageUrl = ogpImageUrl,
-        ogpDescription = ogpDescription)
+        ogpDescription = ogpDescription,
+        toc = tocItems)
 }
 
 
@@ -326,18 +361,20 @@ fun stripHtml(html: String): String {
 }
 
 fun createEntriesHtml(conf: Configuration, entries: List<Entry>) {
-    entries.forEach { createEntryHtml(conf, it) }
+    entries.forEach { createEntryHtml(conf, it, entries) }
     println("Created ${entries.size} entries.")
 }
 
-fun createEntryHtml(conf: Configuration, entry: Entry) {
-    val content = Templates.renderEntry(conf, entry)
+fun createEntryHtml(conf: Configuration, entry: Entry, allEntries: List<Entry>) {
+    val recentEntries = buildRecentEntries(conf, allEntries, currentUrlPath = entry.urlPath)
+    val content = Templates.renderEntry(conf, entry, recentEntries)
     writeFile(entry.filePath.parent.resolve("index.html"), content)
 }
 
 
 fun createIndexHtml(conf: Configuration, indexHtmlPath: Path, entries: List<Entry>) {
-    val content = Templates.renderIndex(conf, entries)
+    val recentEntries = buildRecentEntries(conf, entries, currentUrlPath = null)
+    val content = Templates.renderIndex(conf, entries, recentEntries)
     writeFile(indexHtmlPath, content)
 }
 
@@ -347,12 +384,63 @@ fun createRssXML(conf: Configuration, feedXmlPath: Path, entries: List<Entry>) {
 }
 
 /**
+ * Builds a list of recent entries limited by configuration.
+ */
+fun buildRecentEntries(conf: Configuration, entries: List<Entry>, currentUrlPath: String?): List<RecentEntry> {
+    return entries.take(conf.recentEntryCount).map {
+        val href = URI(conf.documentBaseUrl + it.urlPath).normalize().toString()
+        RecentEntry(
+            title = it.title,
+            href = href,
+            publishDateLocal = it.publishDateLocal,
+            isCurrent = currentUrlPath != null && currentUrlPath == it.urlPath,
+        )
+    }
+}
+
+/**
  * Rewrites Markdown image syntax to responsive HTML placeholders and generates resized assets.
  */
 data class ProcessedMarkdown(
     val markdown: String,
     val replacements: Map<String, String>,
 )
+
+fun extractToc(markdown: String): List<TocEntry> {
+    val toc = mutableListOf<TocEntry>()
+    markdown.lines().forEach { line ->
+        val trimmed = line.trimStart()
+        val level = when {
+            trimmed.startsWith("### ") -> 3
+            trimmed.startsWith("## ") -> 2
+            else -> null
+        }
+        if (level != null) {
+            val text = trimmed.removePrefix("#".repeat(level)).trim()
+            val id = slugify(text)
+            toc.add(TocEntry(level, text, id))
+        }
+    }
+    return toc
+}
+
+fun slugify(text: String): String {
+    val cleaned = text.lowercase()
+        .replace(Regex("[^a-z0-9\\s-]"), " ")
+        .trim()
+        .replace(Regex("\\s+"), "-")
+    return cleaned.ifBlank { UUID.randomUUID().toString() }
+}
+
+fun injectHeadingIds(html: String, toc: List<TocEntry>): String {
+    var result = html
+    toc.forEach { item ->
+        val tag = "<h${item.level}>"
+        val replacement = """<h${item.level} id="${item.id}">"""
+        result = result.replaceFirst(tag, replacement)
+    }
+    return result
+}
 
 fun processMarkdownImages(
     markdown: String,
@@ -431,9 +519,9 @@ fun writeFile(path: Path, content: String){
  * Copies the image overlay helper script into the document root so generated HTML can load it.
  */
 fun copyOverlayScript(outputRoot: Path) {
-    val target = outputRoot.resolve("assets/pologen-images.js")
+    val target = outputRoot.resolve("assets/pologen.js")
     if (target.exists()) return
-    val resource = Templates::class.java.classLoader.getResourceAsStream("assets/pologen-images.js")
+    val resource = Templates::class.java.classLoader.getResourceAsStream("assets/pologen.js")
         ?: return
     Files.createDirectories(target.parent)
     resource.use { input ->

@@ -29,6 +29,8 @@ class ConfigSpec : FunSpec({
             imageFullMaxWidth = 1280
             imageScaleMethod = "speed"
             imageJpegQuality = 0.8
+            recentEntryCount = 5
+            links = { Docs = "https://example.com/docs", SNS = "https://sns.example.com" }
             stylesheets = ["/custom.css"]
             scripts = ["/custom.js"]
             """.trimIndent()
@@ -53,5 +55,35 @@ class ConfigSpec : FunSpec({
         conf.imageJpegQuality shouldBe 0.8f
         conf.stylesheets shouldBe listOf("/custom.css")
         conf.scripts shouldBe listOf("/custom.js")
+        conf.recentEntryCount shouldBe 5
+        conf.links["Docs"] shouldBe "https://example.com/docs"
+        conf.links["SNS"] shouldBe "https://sns.example.com"
+    }
+
+    test("links preserves insertion order and trims surrounding quotes") {
+        val tmp = createTempDirectory("pologen-links-")
+        val file = tmp.resolve("config.toml")
+        file.writeText(
+            """
+            documentRootPath = "docs"
+            blogTopUrl = "/"
+            documentBaseUrl = "https://example.com"
+            feedXmlPath = "feed.xml"
+            feedXmlUrl = "/feed.xml"
+            indexHtmlPath = "index.html"
+            siteTitle = "Example Site"
+            siteDescription = "Example Description"
+            siteLanguage = "en"
+            faviconUrl = "/favicon.png"
+            authorName = "@example"
+            authorUrl = "https://example.com/me"
+            authorIconUrl = "https://example.com/me.png"
+            links = { "'a'" = "https://a.example.com", "b b" = "https://b.example.com" }
+            """.trimIndent()
+        )
+        val conf = loadConfiguration(file)
+        val sanitized = sanitizeLinks(conf.links)
+        sanitized.keys.toList() shouldBe listOf("'a'", "b b")
+        sanitized.values.toList() shouldBe listOf("https://a.example.com", "https://b.example.com")
     }
 })
