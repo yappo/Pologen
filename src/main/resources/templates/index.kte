@@ -16,18 +16,18 @@
 <body class="bg-slate-950 text-slate-100 font-sans text-base leading-relaxed sm:text-lg">
 <div class="min-h-screen flex flex-col">
     <header class="border-b border-slate-800 bg-slate-900/50">
-        <div class="mx-auto w-full max-w-4xl px-4 sm:px-6 lg:px-8 py-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8 py-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <a href="${model.site.blogTopUrl}" class="text-2xl sm:text-3xl font-semibold tracking-tight hover:text-white transition text-center sm:text-left">
                 ${model.site.title}
             </a>
-            <a href="${model.site.feedXmlUrl}" class="text-sm text-slate-300 hover:text-white transition text-center sm:text-right">
+            <a href="${model.rssUrl}" class="text-sm text-slate-300 hover:text-white transition text-center sm:text-right">
                 RSS Feed
             </a>
         </div>
     </header>
     <main class="flex-1">
-        <div class="mx-auto w-full max-w-4xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-            <div class="flex flex-col gap-5">
+        <div class="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12 flex flex-col lg:flex-row gap-8">
+            <div class="lg:w-2/3 flex flex-col gap-5">
                 @for (entry in model.entries)
                     <a href="${entry.href}" class="rounded-2xl border border-slate-800 bg-slate-900/40 p-5 sm:p-6 shadow-lg shadow-slate-900/40 flex flex-col gap-3 hover:border-slate-600 hover:bg-slate-900 transition focus-visible:ring focus-visible:ring-slate-700 focus-visible:outline-none w-full">
                         <p class="text-xs uppercase tracking-wide text-slate-400">${entry.publishDateLocal}</p>
@@ -36,10 +36,58 @@
                     </a>
                 @endfor
             </div>
+            <aside class="lg:w-1/3 space-y-4">
+                <div class="card bg-slate-900/60 border border-slate-800">
+                    <div class="card-body">
+                        <div class="flex items-center gap-3">
+                            <img src="${model.site.author.iconUrl}"
+                                 alt="${model.site.author.name}"
+                                 class="h-10 w-10 rounded-full border border-slate-700"/>
+                            <div>
+                                <p class="text-sm text-slate-400">Author</p>
+                                <a href="${model.site.author.url}" class="text-white font-semibold hover:text-slate-200 transition">${model.site.author.name}</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card bg-slate-900/60 border border-slate-800">
+                    <div class="card-body">
+                        <h3 class="card-title text-white text-sm">Recent posts</h3>
+                        <ul class="space-y-2 text-sm">
+                        @for (r in model.recentEntries)
+                            <li>
+                                <a href="${r.href}" class="block text-slate-300 hover:text-white transition">
+                                    ${r.title}
+                                </a>
+                                <p class="text-xs text-slate-500">${r.publishDateLocal}</p>
+                            </li>
+                        @endfor
+                        </ul>
+                    </div>
+                </div>
+                <div class="card bg-slate-900/60 border border-slate-800">
+                    <div class="card-body">
+                        <h3 class="card-title text-white text-sm">Links</h3>
+                        <ul class="space-y-2 text-sm">
+                        @for (link in model.links.entries)
+                            <li>
+                                <a href="${link.value}" class="text-slate-300 hover:text-white transition" target="_blank" rel="noopener">${link.key}</a>
+                            </li>
+                        @endfor
+                        </ul>
+                    </div>
+                </div>
+                <div class="card bg-slate-900/60 border border-slate-800">
+                    <div class="card-body">
+                        <h3 class="card-title text-white text-sm">RSS</h3>
+                        <a href="${model.rssUrl}" class="text-slate-300 hover:text-white transition text-sm">Subscribe</a>
+                    </div>
+                </div>
+            </aside>
         </div>
     </main>
     <footer class="border-t border-slate-800 bg-slate-900/60">
-        <div class="mx-auto w-full max-w-5xl px-4 py-6 text-sm text-slate-400 flex items-center justify-between">
+        <div class="mx-auto w-full max-w-6xl px-4 py-6 text-sm text-slate-400 flex items-center justify-between">
             <span>© ${model.site.title}</span>
             <a href="${model.site.author.url}" class="hover:text-white transition">${model.site.author.name}</a>
         </div>

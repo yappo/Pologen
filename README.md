@@ -33,6 +33,8 @@ imageThumbWidth = 480
 imageFullMaxWidth = 1920
 imageScaleMethod = "quality"
 imageJpegQuality = 0.9
+recentEntryCount = 10
+links = { "Docs" = "https://docs.example.com", "Community Portal" = "https://community.example.com" }
 ogpEnabled = true
 ogpWidth = 1200
 ogpHeight = 630
@@ -53,10 +55,11 @@ ogpAuthorIconPath = "/absolute/or/relative/path/to/author_icon.png"
 - `siteTitle`, `siteDescription`, and `siteLanguage` configure the text metadata injected into both HTML templates and RSS.
 - `faviconUrl`, `authorName`, `authorUrl`, and `authorIconUrl` drive the header/footer branding, author credits, and avatar used on entry pages.
 - `imageThumbWidth`, `imageFullMaxWidth`, `imageScaleMethod`, and `imageJpegQuality` govern thumbnail/full-size resizing and JPEG quality; supported `imageScaleMethod` values are `speed`, `balanced`, `quality`, and `ultra_quality`.
+- `recentEntryCount` controls how many items appear in the “Recent posts” sidebar card; `links` is an insertion-order map rendered as external links in the sidebar (quote keys like `"Community Portal"` if they contain spaces).
 - OGP: enable with `ogpEnabled = true`; control size (`ogpWidth`/`ogpHeight`), colors (`ogpBackgroundColor`/`ogpTitleColor`/`ogpBodyColor`/`ogpAccentColor`), and optional assets (`ogpFontPath`, `ogpAuthorIconPath`). If disabled or omitted, OGP image generation and meta tags are skipped entirely.
 
 ## Styling Defaults
-The bundled templates include Tailwind CSS (via the CDN script `https://cdn.tailwindcss.com`) and daisyUI’s ready-made theme CSS (`https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css`) by default, plus the overlay helper script at `/assets/pologen-images.js`. The markup sticks to standard Tailwind utility classes so you can swap in Flowbite, Bootstrap, or another framework in the future without rewriting the DOM structure. Upcoming releases will let you point the generator at your own `.kte` templates to fully customize the framework stack while still inheriting the configuration metadata described above.
+The bundled templates include Tailwind CSS (via the CDN script `https://cdn.tailwindcss.com`) and daisyUI’s ready-made theme CSS (`https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css`) by default, plus the helper script at `/assets/pologen.js` (image overlay + TOC interactions). The markup sticks to standard Tailwind utility classes so you can swap in Flowbite, Bootstrap, or another framework in the future without rewriting the DOM structure. Upcoming releases will let you point the generator at your own `.kte` templates to fully customize the framework stack while still inheriting the configuration metadata described above.
 
 ## Image Handling
 Markdown image syntax (`![alt](photo.jpg)`) now renders responsive figures: Pologen resolves the image relative to the post folder, emits `photo-full.jpg` and `photo-thumb.jpg` with the configured sizes, and injects Tailwind-ready HTML that links the thumbnail to the full asset. Both variants are generated as JPEGs using imgscalr, and assets live next to the post's `index.html`, so they deploy automatically alongside the rest of the entry directory.
