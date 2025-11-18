@@ -25,6 +25,7 @@ import kotlin.io.path.*
 import org.imgscalr.Scalr
 import org.apache.commons.text.StringEscapeUtils
 import java.util.UUID
+import java.awt.Color
 
 data class Entry(
     val filePath: Path,
@@ -35,6 +36,8 @@ data class Entry(
     val markdown: String,
     val html: String,
     val body: String,
+    val ogpImageUrl: String? = null,
+    val ogpDescription: String? = null,
 ) {
     val summary: String by lazy {
         if (body.length > 140) {
@@ -67,6 +70,15 @@ data class Configuration (
     val imageJpegQuality: Float = 0.9f,
     val stylesheets: List<String> = emptyList(),
     val scripts: List<String> = emptyList(),
+    val ogpEnabled: Boolean = false,
+    val ogpWidth: Int = 1200,
+    val ogpHeight: Int = 630,
+    val ogpBackgroundColor: String = "#101827",
+    val ogpTitleColor: String = "#FFFFFF",
+    val ogpBodyColor: String = "#E5E7EB",
+    val ogpAccentColor: String = "#F97316",
+    val ogpFontPath: String? = null,
+    val ogpAuthorIconPath: String? = null,
 )
 
 /**
@@ -126,6 +138,23 @@ fun currentDateTimeInJST(): String {
     return currentDateTime.format(formatter)
 }
 
+/**
+ * Produces a safe OGP description by truncating to roughly 100 code points.
+ */
+fun truncateForOgp(text: String, limit: Int = 100): String {
+    val normalized = text.replace("\n", " ").trim()
+    var count = 0
+    val builder = StringBuilder()
+    normalized.codePoints().forEachOrdered { cp ->
+        if (count < limit) {
+            builder.appendCodePoint(cp)
+            count++
+        }
+    }
+    val originalCount = normalized.codePoints().count()
+    return if (originalCount > limit) builder.append("…").toString() else builder.toString()
+}
+
 fun main(args: Array<String>) {
     if (args.isEmpty()) {
         println("Usage: $ app config.toml")
@@ -142,10 +171,12 @@ fun main(args: Array<String>) {
         return
     }
 
+    val baseDir = configFile.parent
     val entries = recursiveMarkdownFiles(
         conf,
         configFile.parent.resolve(conf.documentRootPath).normalize(),
-        docsRootDir)
+        docsRootDir,
+        baseDir)
     copyOverlayScript(docsRootDir)
     createEntriesHtml(conf, entries)
 
@@ -164,18 +195,18 @@ fun loadConfiguration(path: Path): Configuration {
     return configuration
 }
 
-fun recursiveMarkdownFiles(conf: Configuration, rootDirPath: Path, dirPath: Path) : List<Entry> {
+fun recursiveMarkdownFiles(conf: Configuration, rootDirPath: Path, dirPath: Path, configBaseDir: Path) : List<Entry> {
     val entries = mutableListOf<Entry>()
     val indexMdFile = dirPath.resolve("index.md")
     if (Files.exists(indexMdFile)) {
-        entries.add(loadMarkdown(conf, rootDirPath, indexMdFile))
+        entries.add(loadMarkdown(conf, rootDirPath, indexMdFile, configBaseDir))
     }
 
     Files.list(dirPath)
         .sorted(reverseOrder())
         .filter { it.toFile().isDirectory }
         .forEach {
-            val childEntries = recursiveMarkdownFiles(conf, rootDirPath, it)
+            val childEntries = recursiveMarkdownFiles(conf, rootDirPath, it, configBaseDir)
             entries.addAll(childEntries)
         }
 
@@ -183,7 +214,7 @@ fun recursiveMarkdownFiles(conf: Configuration, rootDirPath: Path, dirPath: Path
 }
 
 // TODO: 雑なのちゃんとしよう。。
-fun loadMarkdown(conf: Configuration, rootDirPath: Path, filePath: Path): Entry {
+fun loadMarkdown(conf: Configuration, rootDirPath: Path, filePath: Path, configBaseDir: Path): Entry {
     val lines = Files.readAllLines(filePath)
     val titleLine = lines.first()
 
@@ -244,6 +275,39 @@ fun loadMarkdown(conf: Configuration, rootDirPath: Path, filePath: Path): Entry 
         meta.publishDate
     }
 
+    var ogpImageUrl: String? = null
+    var ogpDescription: String? = null
+    if (conf.ogpEnabled) {
+        val ogpPath = filePath.parent.resolve("ogp.png")
+        ogpDescription = truncateForOgp(body)
+        val ogpSiteTitle = truncateForOgp(conf.siteTitle, 60)
+        val ogpEntryTitle = truncateForOgp(title, 80)
+        val needsOgp = !ogpPath.isRegularFile() || meta.bodyMd5 != bodyDigest
+        if (needsOgp) {
+            try {
+                val resolvedFont = resolveConfiguredPath(configBaseDir, conf.ogpFontPath)
+                val resolvedIcon = resolveConfiguredPath(configBaseDir, conf.ogpAuthorIconPath)
+                val ogpConf = conf.copy(
+                    ogpFontPath = resolvedFont?.toString(),
+                    ogpAuthorIconPath = resolvedIcon?.toString()
+                )
+                OGPGenerator.generate(
+                    conf = ogpConf,
+                    siteTitle = ogpSiteTitle,
+                    entryTitle = ogpEntryTitle,
+                    description = ogpDescription,
+                    output = ogpPath
+                )
+            } catch (e: Exception) {
+                println("Failed to generate OGP image for $filePath: ${e.message}")
+            }
+        }
+        val urlSegment = urlPath.trimStart('/')
+        val ogpUrl = if (urlSegment.isBlank()) URI(conf.documentBaseUrl).resolve(ogpPath.fileName.toString())
+        else URI(conf.documentBaseUrl).resolve("$urlSegment${ogpPath.fileName}")
+        ogpImageUrl = ogpUrl.normalize().toString()
+    }
+
     return Entry(filePath,
         urlPath,
         title,
@@ -251,7 +315,9 @@ fun loadMarkdown(conf: Configuration, rootDirPath: Path, filePath: Path): Entry 
         convertToRssDateTimeFormat(publishDate, localZoneId, localZoneId),
         markdownWithImages,
         html,
-        body)
+        body,
+        ogpImageUrl = ogpImageUrl,
+        ogpDescription = ogpDescription)
 }
 
 
@@ -374,4 +440,13 @@ fun copyOverlayScript(outputRoot: Path) {
         Files.copy(input, target)
     }
     println("Created: ${target.toAbsolutePath()}")
+}
+
+/**
+ * Resolves a configured path relative to the configuration base directory.
+ */
+fun resolveConfiguredPath(baseDir: Path, pathStr: String?): Path? {
+    if (pathStr.isNullOrBlank()) return null
+    val candidate = Path.of(pathStr)
+    return if (candidate.isAbsolute) candidate.normalize() else baseDir.resolve(candidate).normalize()
 }

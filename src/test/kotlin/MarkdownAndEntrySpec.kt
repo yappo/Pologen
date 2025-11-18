@@ -34,7 +34,7 @@ class MarkdownAndEntrySpec : FunSpec({
             """.trimIndent()
         )
 
-        val entry = loadMarkdown(testConfiguration(), root, md)
+        val entry = loadMarkdown(testConfiguration(), root, md, root)
 
         entry.title shouldBe "My Title"
         entry.urlPath shouldBe "/2025/10/post/"
@@ -81,7 +81,7 @@ class MarkdownAndEntrySpec : FunSpec({
             bodyMd5 = ""
         """.trimIndent())
 
-        val list = recursiveMarkdownFiles(testConfiguration(), root, root)
+        val list = recursiveMarkdownFiles(testConfiguration(), root, root, root)
         list.size shouldBe 2
         list.map { it.urlPath } shouldContainAll listOf("/a/", "/b/")
     }
