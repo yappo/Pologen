@@ -52,7 +52,7 @@
                 </div>
                 <div class="card bg-slate-900/60 border border-slate-800">
                     <div class="card-body">
-                        <h3 class="card-title text-white text-sm">Recent posts</h3>
+                        <h3 class="card-title text-white text-base">Recent posts</h3>
                         <ul class="space-y-2 text-sm">
                         @for (r in model.recentEntries)
                             <li>
@@ -67,7 +67,7 @@
                 </div>
                 <div class="card bg-slate-900/60 border border-slate-800">
                     <div class="card-body">
-                        <h3 class="card-title text-white text-sm">Links</h3>
+                        <h3 class="card-title text-white text-base">Links</h3>
                         <ul class="space-y-2 text-sm">
                         @for (link in model.links.entries)
                             <li>
@@ -79,7 +79,7 @@
                 </div>
                 <div class="card bg-slate-900/60 border border-slate-800">
                     <div class="card-body">
-                        <h3 class="card-title text-white text-sm">RSS</h3>
+                        <h3 class="card-title text-white text-base">RSS</h3>
                         <a href="${model.rssUrl}" class="text-slate-300 hover:text-white transition text-sm">Subscribe</a>
                     </div>
                 </div>
