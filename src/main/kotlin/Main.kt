@@ -300,7 +300,10 @@ fun loadMarkdown(conf: Configuration, rootDirPath: Path, filePath: Path, configB
                 println("Failed to generate OGP image for $filePath: ${e.message}")
             }
         }
-        ogpImageUrl = "${conf.documentBaseUrl}$urlPath${ogpPath.fileName}"
+        val urlSegment = urlPath.trimStart('/')
+        val ogpUrl = if (urlSegment.isBlank()) URI(conf.documentBaseUrl).resolve(ogpPath.fileName.toString())
+        else URI(conf.documentBaseUrl).resolve("$urlSegment${ogpPath.fileName}")
+        ogpImageUrl = ogpUrl.normalize().toString()
     }
 
     return Entry(filePath,
