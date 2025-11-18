@@ -71,6 +71,8 @@ data class FeedPageModel(
     val channelFeedUrl: String,
     val lastPublishDate: String,
     val entries: List<FeedEntryModel>,
+    val siteTitleEscaped: String,
+    val siteDescriptionEscaped: String,
 )
 
 object Templates {
@@ -131,8 +133,9 @@ object Templates {
     fun renderFeed(conf: Configuration, entries: List<Entry>): String {
         val feedEntries = entries.map { entry ->
             val href = URI(conf.documentBaseUrl + entry.urlPath).normalize().toString()
+            val safeTitle = StringEscapeUtils.escapeXml10(entry.title)
             FeedEntryModel(
-                title = entry.title,
+                title = safeTitle,
                 link = href,
                 publishDate = entry.publishDate,
                 summary = StringEscapeUtils.escapeXml10(entry.summary),
@@ -144,6 +147,8 @@ object Templates {
             channelFeedUrl = conf.feedXmlUrl,
             lastPublishDate = entries.firstOrNull()?.publishDate ?: "",
             entries = feedEntries,
+            siteTitleEscaped = StringEscapeUtils.escapeXml10(conf.siteTitle),
+            siteDescriptionEscaped = StringEscapeUtils.escapeXml10(conf.siteDescription),
         )
         val output = StringOutput()
         plainTemplateEngine.render("feed.kte", model, output)

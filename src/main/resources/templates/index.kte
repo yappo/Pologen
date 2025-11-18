@@ -5,6 +5,7 @@
 <head>
     <meta charset="UTF-8"/>
     <title>${model.site.title}</title>
+    <meta name="description" content="${model.site.description}"/>
     <link rel="icon" href="${model.site.faviconUrl}"/>
     <link rel="alternate"
           type="application/rss+xml"

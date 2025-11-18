@@ -42,7 +42,7 @@ class RssSpec : FunSpec({
         val xml = out.readText()
         xml shouldContain "<title>Example Site</title>"
         xml shouldContain "<item>"
-        xml shouldContain "<title>Post &amp; Title</title>".replace("&amp;", "&") // title isn't escaped by code; ensure it appears as is
+        xml shouldContain "<title>Post &amp; Title</title>"
         xml shouldContain "<link>https://example.com/post/</link>"
         xml shouldContain "<pubDate>Wed, 01 Jan 2025 18:04:05 GMT</pubDate>"
         xml shouldContain "A&amp;B &lt; C"

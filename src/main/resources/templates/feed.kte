@@ -3,10 +3,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <rss xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
     <channel>
-        <title>${model.site.title}</title>
+        <title>${model.siteTitleEscaped}</title>
         <link>${model.channelLink}</link>
         <atom:link href="${model.channelFeedUrl}" rel="self" type="application/rss+xml"/>
-        <description>${model.site.description}</description>
+        <description>${model.siteDescriptionEscaped}</description>
         <language>${model.site.language}</language>
         <pubDate>${model.lastPublishDate}</pubDate>
         @for (entry in model.entries)
