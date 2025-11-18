@@ -280,6 +280,8 @@ fun loadMarkdown(conf: Configuration, rootDirPath: Path, filePath: Path, configB
     if (conf.ogpEnabled) {
         val ogpPath = filePath.parent.resolve("ogp.png")
         ogpDescription = truncateForOgp(body)
+        val ogpSiteTitle = truncateForOgp(conf.siteTitle, 60)
+        val ogpEntryTitle = truncateForOgp(title, 80)
         val needsOgp = !ogpPath.isRegularFile() || meta.bodyMd5 != bodyDigest
         if (needsOgp) {
             try {
@@ -291,8 +293,8 @@ fun loadMarkdown(conf: Configuration, rootDirPath: Path, filePath: Path, configB
                 )
                 OGPGenerator.generate(
                     conf = ogpConf,
-                    siteTitle = conf.siteTitle,
-                    entryTitle = title,
+                    siteTitle = ogpSiteTitle,
+                    entryTitle = ogpEntryTitle,
                     description = ogpDescription,
                     output = ogpPath
                 )
