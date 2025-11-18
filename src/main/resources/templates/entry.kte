@@ -35,7 +35,7 @@
             <article class="lg:w-2/3 space-y-8">
                 <div class="space-y-2">
                     <p class="text-sm text-slate-400">${model.publishDateLocal}</p>
-                    <h1 class="text-3xl font-semibold text-white">${model.title}</h1>
+                    <h1 class="text-3xl md:text-4xl font-bold text-white leading-tight">${model.title}</h1>
                     <div class="flex items-center gap-3 text-sm text-slate-300">
                         <img src="${model.site.author.iconUrl}"
                              alt="${model.site.author.name}"
@@ -43,7 +43,12 @@
                         <a href="${model.site.author.url}" class="hover:text-white transition">${model.site.author.name}</a>
                     </div>
                 </div>
-                <div class="prose prose-invert max-w-none">
+                <div class="prose prose-invert max-w-none
+                    [&_h2]:text-2xl [&_h2]:md:text-3xl [&_h2]:font-semibold [&_h2]:mt-10 [&_h2]:mb-6 [&_h2]:leading-tight
+                    [&_h3]:text-xl [&_h3]:md:text-2xl [&_h3]:font-semibold [&_h3]:mt-8 [&_h3]:mb-4 [&_h3]:leading-snug
+                    [&_h4]:text-lg [&_h4]:md:text-xl [&_h4]:font-semibold [&_h4]:mt-6 [&_h4]:mb-3
+                    [&_h5]:text-base [&_h5]:font-semibold [&_h5]:mt-5 [&_h5]:mb-3
+                    [&_h6]:text-sm [&_h6]:font-semibold [&_h6]:mt-4 [&_h6]:mb-2">
                     $unsafe{model.bodyHtml}
                 </div>
             </article>
