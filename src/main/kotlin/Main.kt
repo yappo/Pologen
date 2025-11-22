@@ -331,7 +331,7 @@ fun loadMarkdown(conf: Configuration, rootDirPath: Path, filePath: Path, configB
             title = title,
             summary = metaSummary,
             toc = tocItems,
-            updateDate = currentDatTime
+            updateDate = if (baseMeta.bodyMd5 == bodyDigest) baseMeta.updateDate else currentDatTime
         )
         TomlFileWriter().encodeToFile(
             EntryMeta.serializer(),
