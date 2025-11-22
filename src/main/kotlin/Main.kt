@@ -155,10 +155,12 @@ fun currentDateTimeInJST(): String {
 }
 
 /**
- * Produces a safe OGP description by truncating to roughly 100 code points.
+ * Produces a safe OGP description by unescaping HTML, trimming, and truncating to roughly [limit] code points.
  */
-fun truncateForOgp(text: String, limit: Int = 100): String {
-    val normalized = text.replace("\n", " ").trim()
+fun sanitizeForOgp(text: String, limit: Int = 100): String {
+    val normalized = StringEscapeUtils.unescapeHtml4(text)
+        .replace("\n", " ")
+        .trim()
     var count = 0
     val builder = StringBuilder()
     normalized.codePoints().forEachOrdered { cp ->
@@ -174,7 +176,7 @@ fun truncateForOgp(text: String, limit: Int = 100): String {
 /**
  * Generates a summary from plain text, keeping roughly [limit] code points.
  */
-fun truncateSummary(text: String, limit: Int = 100): String = truncateForOgp(text, limit)
+fun truncateSummary(text: String, limit: Int = 100): String = sanitizeForOgp(text, limit)
 
 fun main(args: Array<String>) {
     if (args.isEmpty()) {
@@ -351,9 +353,9 @@ fun loadMarkdown(conf: Configuration, rootDirPath: Path, filePath: Path, configB
     var ogpDescription: String? = null
     if (conf.ogpEnabled) {
         val ogpPath = filePath.parent.resolve("ogp.png")
-        ogpDescription = truncateForOgp(body)
-        val ogpSiteTitle = truncateForOgp(conf.siteTitle, 60)
-        val ogpEntryTitle = truncateForOgp(title, 80)
+        ogpDescription = sanitizeForOgp(body)
+        val ogpSiteTitle = sanitizeForOgp(conf.siteTitle, 60)
+        val ogpEntryTitle = sanitizeForOgp(title, 80)
         val needsOgp = !ogpPath.isRegularFile() || meta.bodyMd5 != bodyDigest
         if (needsOgp) {
             try {

@@ -7,11 +7,12 @@ import kotlin.io.path.createTempDirectory
 import kotlin.io.path.exists
 
 class OgpSpec : FunSpec({
-    test("truncateForOgp limits to 100 code points with ellipsis") {
+    test("sanitizeForOgp limits to 100 code points with ellipsis and unescapes HTML entities") {
         val text = "あ".repeat(150)
-        val truncated = truncateForOgp(text)
+        val truncated = sanitizeForOgp("&lt;p>$text&lt;/p>")
         truncated.codePointCount(0, truncated.length) shouldBe 101
         truncated.endsWith("…") shouldBe true
+        truncated.contains("<p>") shouldBe true
     }
 
     test("ogp generation writer creates png when enabled") {
