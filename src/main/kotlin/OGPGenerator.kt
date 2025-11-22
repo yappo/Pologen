@@ -3,7 +3,6 @@ package jp.yappo.pologen
 import java.awt.*
 import java.awt.geom.Ellipse2D
 import java.awt.image.BufferedImage
-import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.Path
 import javax.imageio.ImageIO
@@ -13,6 +12,10 @@ import kotlin.io.path.isRegularFile
  * Generates OGP images for entries using Java2D.
  */
 object OGPGenerator {
+    private const val AUTHOR_ICON_SIZE = 96
+    private const val ACCENT_BAR_HEIGHT = 8
+    private const val BODY_ICON_GAP = 24
+    private const val BODY_BOTTOM_PADDING = 24
     private var cachedFontPath: Path? = null
     private var cachedFont: Font? = null
     private var cachedAuthorIconPath: Path? = null
@@ -41,7 +44,7 @@ object OGPGenerator {
         g.fillRect(0, 0, width, height)
 
         g.color = accentColor
-        g.fillRect(0, height - 8, width, 8)
+        g.fillRect(0, height - ACCENT_BAR_HEIGHT, width, ACCENT_BAR_HEIGHT)
 
         val baseFont = loadFont(conf.ogpFontPath)
         val siteFont = baseFont.deriveFont(Font.BOLD, 42f)
@@ -64,9 +67,32 @@ object OGPGenerator {
         cursorY = drawWrappedText(g, entryTitle, margin, cursorY, width - margin * 2, titleLineHeight)
 
         cursorY += 18
-        g.color = bodyColor
-        g.font = bodyFont
-        cursorY = drawWrappedText(g, description.orEmpty(), margin, cursorY, width - margin * 2, bodyLineHeight, maxLines = 5)
+        val bodyText = description.orEmpty()
+        val baseBodyMaxWidth = width - margin * 2
+        val hasAuthorIcon = !conf.ogpAuthorIconPath.isNullOrBlank()
+        val bodyMaxWidth = if (hasAuthorIcon) {
+            val reservedWidth = baseBodyMaxWidth - AUTHOR_ICON_SIZE - BODY_ICON_GAP
+            maxOf(reservedWidth, baseBodyMaxWidth / 2)
+        } else {
+            baseBodyMaxWidth
+        }
+        val reservedBottom = BODY_BOTTOM_PADDING + ACCENT_BAR_HEIGHT
+        val availableHeight = (height - reservedBottom) - cursorY
+        val bodyMaxLinesByHeight = if (availableHeight > 0) availableHeight / bodyLineHeight else 0
+        val bodyMaxLines = minOf(5, bodyMaxLinesByHeight)
+        if (bodyMaxLines > 0 && bodyText.isNotBlank()) {
+            g.color = bodyColor
+            g.font = bodyFont
+            drawWrappedText(
+                g,
+                bodyText,
+                margin,
+                cursorY,
+                bodyMaxWidth,
+                bodyLineHeight,
+                maxLines = bodyMaxLines
+            )
+        }
 
         drawAuthorIcon(g, conf, width, height, margin)
 
@@ -117,31 +143,34 @@ object OGPGenerator {
         val lines = mutableListOf<String>()
 
         if (words.size == 1) {
-            val t = text
-            var currentLine = StringBuilder()
-            for (ch in t) {
-                val candidate = currentLine.toString() + ch
-                val w = fm.stringWidth(candidate)
-                if (w > maxWidth && currentLine.isNotEmpty()) {
-                    lines.add(currentLine.toString())
-                    if (lines.size >= maxLines) {
-                        break
-                    }
-                    currentLine = StringBuilder().append(ch)
-                } else {
-                    currentLine.append(ch)
-                }
-            }
-            if (lines.size < maxLines && currentLine.isNotEmpty()) {
-                lines.add(currentLine.toString())
+            val singleLines = splitWordByWidth(words.first(), fm, maxWidth)
+            for (line in singleLines) {
+                lines.add(line)
+                if (lines.size >= maxLines) break
             }
         } else {
             var current = StringBuilder()
             for (word in words) {
+                if (word.isBlank()) continue
+                if (fm.stringWidth(word) > maxWidth) {
+                    if (current.isNotEmpty()) {
+                        lines.add(current.toString())
+                        current = StringBuilder()
+                        if (lines.size >= maxLines) break
+                    }
+                    val parts = splitWordByWidth(word, fm, maxWidth)
+                    for (part in parts) {
+                        lines.add(part)
+                        if (lines.size >= maxLines) break
+                    }
+                    if (lines.size >= maxLines) break
+                    continue
+                }
                 val candidate = if (current.isEmpty()) word else current.toString() + " " + word
                 val w = fm.stringWidth(candidate)
                 if (w > maxWidth && current.isNotEmpty()) {
                     lines.add(current.toString())
+                    if (lines.size >= maxLines) break
                     current = StringBuilder(word)
                 } else {
                     current = StringBuilder(candidate)
@@ -163,6 +192,30 @@ object OGPGenerator {
         return y
     }
 
+    private fun splitWordByWidth(word: String, fm: FontMetrics, maxWidth: Int): List<String> {
+        if (word.isEmpty()) return emptyList()
+        val parts = mutableListOf<String>()
+        var current = StringBuilder()
+        for (char in word) {
+            if (current.isEmpty()) {
+                current.append(char)
+                continue
+            }
+            val candidate = current.toString() + char
+            val width = fm.stringWidth(candidate)
+            if (width > maxWidth) {
+                parts.add(current.toString())
+                current = StringBuilder().append(char)
+            } else {
+                current.append(char)
+            }
+        }
+        if (current.isNotEmpty()) {
+            parts.add(current.toString())
+        }
+        return parts
+    }
+
     private fun drawAuthorIcon(
         g: Graphics2D,
         conf: Configuration,
@@ -171,7 +224,7 @@ object OGPGenerator {
         margin: Int,
     ) {
         val icon = loadAuthorIcon(conf.ogpAuthorIconPath) ?: return
-        val targetSize = 96
+        val targetSize = AUTHOR_ICON_SIZE
         val scaled = icon.getScaledInstance(targetSize, targetSize, Image.SCALE_SMOOTH)
         val x = width - margin - targetSize
         val y = height - margin - targetSize
