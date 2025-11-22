@@ -464,11 +464,18 @@ fun extractToc(markdown: String): List<TocEntry> {
 }
 
 fun slugify(text: String): String {
-    val cleaned = text.lowercase()
+    val normalized = text.lowercase().trim()
+    val cleaned = normalized
         .replace(Regex("[^a-z0-9\\s-]"), " ")
         .trim()
         .replace(Regex("\\s+"), "-")
-    return cleaned.ifBlank { UUID.randomUUID().toString() }
+    if (cleaned.isNotBlank()) {
+        return cleaned
+    }
+    val digest = MessageDigest.getInstance("SHA-256")
+    val hash = digest.digest(normalized.toByteArray(Charsets.UTF_8))
+        .joinToString("") { "%02x".format(it) }
+    return "heading-${hash.take(16)}"
 }
 
 fun injectHeadingIds(html: String, toc: List<TocEntry>): String {
