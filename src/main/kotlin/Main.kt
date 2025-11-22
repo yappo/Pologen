@@ -320,7 +320,6 @@ fun loadMarkdown(conf: Configuration, rootDirPath: Path, filePath: Path, configB
         toc = tocItems
     )
     val needsUpdate = existingMeta == null ||
-        parsedFromLegacy ||
         baseMeta.bodyMd5 != bodyDigest ||
         baseMeta.title != title ||
         baseMeta.summary != metaSummary ||
