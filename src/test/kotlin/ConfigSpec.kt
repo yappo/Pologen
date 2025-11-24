@@ -12,50 +12,64 @@ class ConfigSpec : FunSpec({
         val file = tmp.resolve("config.toml")
         file.writeText(
             """
-            documentRootPath = "docs"
+            [paths]
+            documentRoot = "docs"
+            indexHtml = "index.html"
+            feedXml = "feed.xml"
+
+            [site]
             blogTopUrl = "/"
             documentBaseUrl = "https://example.com"
-            feedXmlPath = "feed.xml"
             feedXmlUrl = "/feed.xml"
-            indexHtmlPath = "index.html"
-            siteTitle = "Example Site"
-            siteDescription = "Example Description"
-            siteLanguage = "en"
+            title = "Example Site"
+            description = "Example Description"
+            language = "en"
             faviconUrl = "/favicon.png"
-            authorName = "@example"
-            authorUrl = "https://example.com/me"
-            authorIconUrl = "https://example.com/me.png"
-            imageThumbWidth = 320
-            imageFullMaxWidth = 1280
-            imageScaleMethod = "speed"
-            imageJpegQuality = 0.8
-            recentEntryCount = 5
-            links = { Docs = "https://example.com/docs", SNS = "https://sns.example.com" }
+
+            [author]
+            name = "@example"
+            url = "https://example.com/me"
+            iconUrl = "https://example.com/me.png"
+
+            [images]
+            thumbWidth = 320
+            fullMaxWidth = 1280
+            scaleMethod = "speed"
+            jpegQuality = 0.8
+
+            [assets]
             stylesheets = ["/custom.css"]
             scripts = ["/custom.js"]
+
+            [sidebar]
+            recentEntryCount = 5
+
+            [links]
+            Docs = "https://example.com/docs"
+            SNS = "https://sns.example.com"
             """.trimIndent()
         )
         val conf = loadConfiguration(file)
-        conf.documentRootPath shouldBe "docs"
-        conf.blogTopUrl shouldBe "/"
-        conf.documentBaseUrl shouldBe "https://example.com"
-        conf.feedXmlPath shouldBe "feed.xml"
-        conf.feedXmlUrl shouldBe "/feed.xml"
-        conf.indexHtmlPath shouldBe "index.html"
-        conf.siteTitle shouldBe "Example Site"
-        conf.siteDescription shouldBe "Example Description"
-        conf.siteLanguage shouldBe "en"
-        conf.faviconUrl shouldBe "/favicon.png"
-        conf.authorName shouldBe "@example"
-        conf.authorUrl shouldBe "https://example.com/me"
-        conf.authorIconUrl shouldBe "https://example.com/me.png"
-        conf.imageThumbWidth shouldBe 320
-        conf.imageFullMaxWidth shouldBe 1280
-        conf.imageScaleMethod shouldBe org.imgscalr.Scalr.Method.SPEED
-        conf.imageJpegQuality shouldBe 0.8f
-        conf.stylesheets shouldBe listOf("/custom.css")
-        conf.scripts shouldBe listOf("/custom.js")
-        conf.recentEntryCount shouldBe 5
+        conf.paths.documentRoot shouldBe "docs"
+        conf.paths.indexHtml shouldBe "index.html"
+        conf.paths.feedXml shouldBe "feed.xml"
+        conf.site.blogTopUrl shouldBe "/"
+        conf.site.documentBaseUrl shouldBe "https://example.com"
+        conf.site.feedXmlUrl shouldBe "/feed.xml"
+        conf.site.title shouldBe "Example Site"
+        conf.site.description shouldBe "Example Description"
+        conf.site.language shouldBe "en"
+        conf.site.faviconUrl shouldBe "/favicon.png"
+        conf.author.name shouldBe "@example"
+        conf.author.url shouldBe "https://example.com/me"
+        conf.author.iconUrl shouldBe "https://example.com/me.png"
+        conf.images.thumbWidth shouldBe 320
+        conf.images.fullMaxWidth shouldBe 1280
+        conf.images.scaleMethod shouldBe org.imgscalr.Scalr.Method.SPEED
+        conf.images.jpegQuality shouldBe 0.8f
+        conf.assets.stylesheets shouldBe listOf("/custom.css")
+        conf.assets.scripts shouldBe listOf("/custom.js")
+        conf.sidebar.recentEntryCount shouldBe 5
         conf.links["Docs"] shouldBe "https://example.com/docs"
         conf.links["SNS"] shouldBe "https://sns.example.com"
     }
@@ -65,20 +79,28 @@ class ConfigSpec : FunSpec({
         val file = tmp.resolve("config.toml")
         file.writeText(
             """
-            documentRootPath = "docs"
+            [paths]
+            documentRoot = "docs"
+            indexHtml = "index.html"
+            feedXml = "feed.xml"
+
+            [site]
             blogTopUrl = "/"
             documentBaseUrl = "https://example.com"
-            feedXmlPath = "feed.xml"
             feedXmlUrl = "/feed.xml"
-            indexHtmlPath = "index.html"
-            siteTitle = "Example Site"
-            siteDescription = "Example Description"
-            siteLanguage = "en"
+            title = "Example Site"
+            description = "Example Description"
+            language = "en"
             faviconUrl = "/favicon.png"
-            authorName = "@example"
-            authorUrl = "https://example.com/me"
-            authorIconUrl = "https://example.com/me.png"
-            links = { "'a'" = "https://a.example.com", "b b" = "https://b.example.com" }
+
+            [author]
+            name = "@example"
+            url = "https://example.com/me"
+            iconUrl = "https://example.com/me.png"
+
+            [links]
+            "'a'" = "https://a.example.com"
+            "b b" = "https://b.example.com"
             """.trimIndent()
         )
         val conf = loadConfiguration(file)

@@ -34,7 +34,7 @@ class MarkdownAndEntrySpec : FunSpec({
             """.trimIndent()
         )
 
-        val entry = loadMarkdown(testConfiguration(), root, md, root)
+        val entry = loadMarkdown(sampleConfiguration(), root, md, root)
 
         entry.title shouldBe "My Title"
         entry.urlPath shouldBe "/2025/10/post/"
@@ -81,24 +81,8 @@ class MarkdownAndEntrySpec : FunSpec({
             bodyMd5 = ""
         """.trimIndent())
 
-        val list = recursiveMarkdownFiles(testConfiguration(), root, root, root)
+        val list = recursiveMarkdownFiles(sampleConfiguration(), root, root, root)
         list.size shouldBe 2
         list.map { it.urlPath } shouldContainAll listOf("/a/", "/b/")
     }
 })
-
-private fun testConfiguration() = Configuration(
-    documentRootPath = ".",
-    blogTopUrl = "/",
-    documentBaseUrl = "https://example.com",
-    feedXmlPath = "feed.xml",
-    feedXmlUrl = "/feed.xml",
-    indexHtmlPath = "index.html",
-    siteTitle = "Example Site",
-    siteDescription = "Example Description",
-    siteLanguage = "en",
-    faviconUrl = "/favicon.png",
-    authorName = "@example",
-    authorUrl = "https://example.com/me",
-    authorIconUrl = "https://example.com/me.png",
-)
