@@ -9,6 +9,9 @@ import java.net.URI
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
+import jp.yappo.pologen.domain.config.Configuration
+import jp.yappo.pologen.domain.model.Entry
+import jp.yappo.pologen.domain.model.TocEntry
 
 data class AuthorMeta(
     val name: String,

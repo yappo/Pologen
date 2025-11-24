@@ -2,6 +2,8 @@ package jp.yappo.pologen
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.string.shouldContain
+import jp.yappo.pologen.domain.model.Entry
+import jp.yappo.pologen.infrastructure.rendering.SiteRenderer
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.createTempDirectory
@@ -26,7 +28,8 @@ class RssSpec : FunSpec({
         )
 
         val out = tmp.resolve("feed.xml")
-        createRssXML(conf, out, listOf(entry))
+        val renderer = SiteRenderer()
+        renderer.renderFeed(conf, out, listOf(entry))
 
         val xml = out.readText()
         xml shouldContain "<title>Example Site</title>"

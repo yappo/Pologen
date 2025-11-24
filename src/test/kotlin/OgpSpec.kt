@@ -2,6 +2,8 @@ package jp.yappo.pologen
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import jp.yappo.pologen.application.util.sanitizeForOgp
+import jp.yappo.pologen.domain.config.OgpConfig
 import java.nio.file.Path
 import kotlin.io.path.createTempDirectory
 import kotlin.io.path.exists

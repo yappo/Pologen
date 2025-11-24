@@ -1,5 +1,6 @@
 package jp.yappo.pologen
 
+import jp.yappo.pologen.domain.config.OgpConfig
 import java.awt.*
 import java.awt.geom.Ellipse2D
 import java.awt.image.BufferedImage

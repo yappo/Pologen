@@ -2,6 +2,8 @@ package jp.yappo.pologen
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import jp.yappo.pologen.application.util.convertToRssDateTimeFormat
+import jp.yappo.pologen.application.util.currentDateTimeInJST
 import java.time.ZoneId
 
 class DateTimeSpec : FunSpec({
