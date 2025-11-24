@@ -17,24 +17,11 @@ class OgpSpec : FunSpec({
 
     test("ogp generation writer creates png when enabled") {
         val dir: Path = createTempDirectory("pologen-ogp-")
-        val conf = Configuration(
-            documentRootPath = ".",
-            blogTopUrl = "/",
-            documentBaseUrl = "https://example.com",
-            feedXmlPath = "feed.xml",
-            feedXmlUrl = "/feed.xml",
-            indexHtmlPath = "index.html",
-            siteTitle = "Site Title",
-            siteDescription = "Desc",
-            siteLanguage = "en",
-            faviconUrl = "/favicon.png",
-            authorName = "author",
-            authorUrl = "/author",
-            authorIconUrl = "/icon.png",
-            ogpEnabled = true,
+        val conf = sampleConfiguration().copy(
+            ogp = OgpConfig(enabled = true)
         )
         val out = dir.resolve("ogp/test.png")
-        OGPGenerator.generate(conf, "Site Title", "Entry Title", "Body", out)
+        OGPGenerator.generate(conf.ogp, "Site Title", "Entry Title", "Body", out)
         out.exists() shouldBe true
     }
 })

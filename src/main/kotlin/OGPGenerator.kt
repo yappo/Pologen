@@ -22,18 +22,18 @@ object OGPGenerator {
     private var cachedAuthorIcon: BufferedImage? = null
 
     fun generate(
-        conf: Configuration,
+        conf: OgpConfig,
         siteTitle: String,
         entryTitle: String,
         description: String?,
         output: Path,
     ) {
-        val width = conf.ogpWidth
-        val height = conf.ogpHeight
-        val bgColor = parseColor(conf.ogpBackgroundColor, Color(0x10, 0x18, 0x27))
-        val titleColor = parseColor(conf.ogpTitleColor, Color.WHITE)
-        val bodyColor = parseColor(conf.ogpBodyColor, Color(0xE5, 0xE7, 0xEB))
-        val accentColor = parseColor(conf.ogpAccentColor, Color(0xF9, 0x73, 0x16))
+        val width = conf.width
+        val height = conf.height
+        val bgColor = parseColor(conf.backgroundColor, Color(0x10, 0x18, 0x27))
+        val titleColor = parseColor(conf.titleColor, Color.WHITE)
+        val bodyColor = parseColor(conf.bodyColor, Color(0xE5, 0xE7, 0xEB))
+        val accentColor = parseColor(conf.accentColor, Color(0xF9, 0x73, 0x16))
 
         val image = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
         val g = image.createGraphics()
@@ -46,7 +46,7 @@ object OGPGenerator {
         g.color = accentColor
         g.fillRect(0, height - ACCENT_BAR_HEIGHT, width, ACCENT_BAR_HEIGHT)
 
-        val baseFont = loadFont(conf.ogpFontPath)
+        val baseFont = loadFont(conf.fontPath)
         val siteFont = baseFont.deriveFont(Font.BOLD, 42f)
         val titleFont = baseFont.deriveFont(Font.BOLD, 64f)
         val bodyFont = baseFont.deriveFont(Font.PLAIN, 30f)
@@ -69,7 +69,7 @@ object OGPGenerator {
         cursorY += 18
         val bodyText = description.orEmpty()
         val baseBodyMaxWidth = width - margin * 2
-        val hasAuthorIcon = !conf.ogpAuthorIconPath.isNullOrBlank()
+        val hasAuthorIcon = !conf.authorIconPath.isNullOrBlank()
         val bodyMaxWidth = if (hasAuthorIcon) {
             val reservedWidth = baseBodyMaxWidth - AUTHOR_ICON_SIZE - BODY_ICON_GAP
             maxOf(reservedWidth, baseBodyMaxWidth / 2)
@@ -218,12 +218,12 @@ object OGPGenerator {
 
     private fun drawAuthorIcon(
         g: Graphics2D,
-        conf: Configuration,
+        conf: OgpConfig,
         width: Int,
         height: Int,
         margin: Int,
     ) {
-        val icon = loadAuthorIcon(conf.ogpAuthorIconPath) ?: return
+        val icon = loadAuthorIcon(conf.authorIconPath) ?: return
         val targetSize = AUTHOR_ICON_SIZE
         val scaled = icon.getScaledInstance(targetSize, targetSize, Image.SCALE_SMOOTH)
         val x = width - margin - targetSize

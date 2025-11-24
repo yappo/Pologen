@@ -28,5 +28,5 @@
 - PRs must summarize intent, list functional changes, and note how you tested; link issues and attach relevant HTML/RSS diffs or screenshots.
 
 ## Configuration Tips
-- The CLI expects a TOML config alongside the invocation; `documentRootPath`, `feedXmlPath`, and `indexHtmlPath` resolve relative to that file.
+- The CLI expects a TOML config alongside the invocation; values under `[paths]` (`documentRoot`, `feedXml`, `indexHtml`) resolve relative to that file.
 - After adding configuration keys, update `Configuration` in `Main.kt` and adjust sample configs or docs so downstream agents stay in sync.

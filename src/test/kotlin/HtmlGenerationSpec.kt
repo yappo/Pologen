@@ -23,21 +23,7 @@ class HtmlGenerationSpec : FunSpec({
             html = "<p>Hello <em>world</em></p>",
             body = "Hello world",
         )
-        val conf = Configuration(
-            documentRootPath = ".",
-            blogTopUrl = "/",
-            documentBaseUrl = "https://example.com",
-            feedXmlPath = "feed.xml",
-            feedXmlUrl = "/feed.xml",
-            indexHtmlPath = "index.html",
-            siteTitle = "Example Site",
-            siteDescription = "Example Description",
-            siteLanguage = "en",
-            faviconUrl = "/favicon.png",
-            authorName = "@example",
-            authorUrl = "https://example.com/me",
-            authorIconUrl = "https://example.com/me.png",
-        )
+        val conf = sampleConfiguration()
 
         createEntryHtml(conf, entry, listOf(entry))
 
@@ -51,20 +37,9 @@ class HtmlGenerationSpec : FunSpec({
 
     test("createIndexHtml writes index file listing entries") {
         val tmp: Path = createTempDirectory("pologen-index-")
-        val conf = Configuration(
-            documentRootPath = ".",
-            blogTopUrl = "/",
-            documentBaseUrl = "https://example.com",
-            feedXmlPath = "feed.xml",
-            feedXmlUrl = "/feed.xml",
-            indexHtmlPath = "out/index.html",
-            siteTitle = "Example Site",
-            siteDescription = "Example Description",
-            siteLanguage = "en",
-            faviconUrl = "/favicon.png",
-            authorName = "@example",
-            authorUrl = "https://example.com/me",
-            authorIconUrl = "https://example.com/me.png",
+        val base = sampleConfiguration()
+        val conf = base.copy(
+            paths = base.paths.copy(indexHtml = "out/index.html")
         )
         val entry = Entry(
             filePath = tmp.resolve("dummy/index.md"),

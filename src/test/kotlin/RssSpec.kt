@@ -10,20 +10,9 @@ import kotlin.io.path.readText
 class RssSpec : FunSpec({
     test("createRssXML writes RSS feed with items and escapes content") {
         val tmp: Path = createTempDirectory("pologen-rss-")
-        val conf = Configuration(
-            documentRootPath = ".",
-            blogTopUrl = "/",
-            documentBaseUrl = "https://example.com",
-            feedXmlPath = "feed.xml",
-            feedXmlUrl = "/feed.xml",
-            indexHtmlPath = "index.html",
-            siteTitle = "Example Site",
-            siteDescription = "Example Description",
-            siteLanguage = "ja",
-            faviconUrl = "/favicon.png",
-            authorName = "@example",
-            authorUrl = "https://example.com/me",
-            authorIconUrl = "https://example.com/me.png",
+        val base = sampleConfiguration()
+        val conf = base.copy(
+            site = base.site.copy(language = "ja")
         )
         val entry = Entry(
             filePath = tmp.resolve("dummy/index.md"),

@@ -88,20 +88,20 @@ object Templates {
     private val plainTemplateEngine: TemplateEngine by lazy { createEngine(ContentType.Plain) }
 
     fun renderEntry(conf: Configuration, entry: Entry, recentEntries: List<RecentEntry>): String {
-        val permalink = URI(conf.documentBaseUrl + entry.urlPath).normalize().toString()
+        val permalink = URI(conf.site.documentBaseUrl + entry.urlPath).normalize().toString()
         val model = EntryPageModel(
             site = conf.toSiteMeta(),
             title = entry.title,
             publishDateLocal = entry.publishDateLocal,
             bodyHtml = entry.html,
             permalink = permalink,
-            shareTargets = buildShareTargets(permalink, entry.title, conf.siteTitle),
+            shareTargets = buildShareTargets(permalink, entry.title, conf.site.title),
             ogpDescription = entry.ogpDescription,
             ogpImageUrl = entry.ogpImageUrl,
             toc = entry.toc,
             recentEntries = recentEntries,
             links = sanitizeLinks(conf.links),
-            rssUrl = conf.feedXmlUrl,
+            rssUrl = conf.site.feedXmlUrl,
         )
         val output = StringOutput()
         htmlTemplateEngine.render("entry.kte", model, output)
@@ -110,7 +110,7 @@ object Templates {
 
     fun renderIndex(conf: Configuration, entries: List<Entry>, recentEntries: List<RecentEntry>): String {
         val viewEntries = entries.map { entry ->
-            val href = URI(conf.documentBaseUrl + entry.urlPath).normalize().toString()
+            val href = URI(conf.site.documentBaseUrl + entry.urlPath).normalize().toString()
             IndexEntrySummary(
                 title = entry.title,
                 href = href,
@@ -123,7 +123,7 @@ object Templates {
             entries = viewEntries,
             recentEntries = recentEntries,
             links = sanitizeLinks(conf.links),
-            rssUrl = conf.feedXmlUrl,
+            rssUrl = conf.site.feedXmlUrl,
         )
         val output = StringOutput()
         htmlTemplateEngine.render("index.kte", model, output)
@@ -132,7 +132,7 @@ object Templates {
 
     fun renderFeed(conf: Configuration, entries: List<Entry>): String {
         val feedEntries = entries.map { entry ->
-            val href = URI(conf.documentBaseUrl + entry.urlPath).normalize().toString()
+            val href = URI(conf.site.documentBaseUrl + entry.urlPath).normalize().toString()
             val safeTitle = StringEscapeUtils.escapeXml10(entry.title)
             FeedEntryModel(
                 title = safeTitle,
@@ -143,12 +143,12 @@ object Templates {
         }
         val model = FeedPageModel(
             site = conf.toSiteMeta(),
-            channelLink = conf.blogTopUrl,
-            channelFeedUrl = conf.feedXmlUrl,
+            channelLink = conf.site.blogTopUrl,
+            channelFeedUrl = conf.site.feedXmlUrl,
             lastPublishDate = entries.firstOrNull()?.publishDate ?: "",
             entries = feedEntries,
-            siteTitleEscaped = StringEscapeUtils.escapeXml10(conf.siteTitle),
-            siteDescriptionEscaped = StringEscapeUtils.escapeXml10(conf.siteDescription),
+            siteTitleEscaped = StringEscapeUtils.escapeXml10(conf.site.title),
+            siteDescriptionEscaped = StringEscapeUtils.escapeXml10(conf.site.description),
         )
         val output = StringOutput()
         plainTemplateEngine.render("feed.kte", model, output)
@@ -156,21 +156,21 @@ object Templates {
     }
 
     private fun Configuration.toSiteMeta(): SiteMeta {
-        val resolvedStyles = if (stylesheets.isNotEmpty()) stylesheets else DEFAULT_STYLESHEETS
-        val resolvedScripts = if (scripts.isNotEmpty()) scripts else DEFAULT_SCRIPTS
+        val resolvedStyles = if (assets.stylesheets.isNotEmpty()) assets.stylesheets else DEFAULT_STYLESHEETS
+        val resolvedScripts = if (assets.scripts.isNotEmpty()) assets.scripts else DEFAULT_SCRIPTS
         return SiteMeta(
-            title = siteTitle,
-            description = siteDescription,
-            language = siteLanguage,
-            blogTopUrl = blogTopUrl,
-            feedXmlUrl = feedXmlUrl,
-            faviconUrl = faviconUrl,
+            title = site.title,
+            description = site.description,
+            language = site.language,
+            blogTopUrl = site.blogTopUrl,
+            feedXmlUrl = site.feedXmlUrl,
+            faviconUrl = site.faviconUrl,
             stylesheets = resolvedStyles,
             scripts = resolvedScripts,
             author = AuthorMeta(
-                name = authorName,
-                url = authorUrl,
-                iconUrl = authorIconUrl,
+                name = author.name,
+                url = author.url,
+                iconUrl = author.iconUrl,
             )
         )
     }

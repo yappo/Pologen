@@ -51,38 +51,73 @@ data class Entry(
 }
 
 @Serializable
-data class Configuration (
-    val documentRootPath: String,
+data class Configuration(
+    val paths: PathsConfig,
+    val site: SiteConfig,
+    val author: AuthorConfig,
+    val assets: AssetsConfig = AssetsConfig(),
+    val images: ImagesConfig = ImagesConfig(),
+    val ogp: OgpConfig = OgpConfig(),
+    val sidebar: SidebarConfig = SidebarConfig(),
+    val links: Map<String, String> = emptyMap(),
+)
+
+@Serializable
+data class PathsConfig(
+    val documentRoot: String,
+    val indexHtml: String,
+    val feedXml: String,
+)
+
+@Serializable
+data class SiteConfig(
     val blogTopUrl: String,
     val documentBaseUrl: String,
-    val feedXmlPath: String,
     val feedXmlUrl: String,
-    val indexHtmlPath: String,
-    val siteTitle: String,
-    val siteDescription: String,
-    val siteLanguage: String,
-    val faviconUrl: String,
-    val authorName: String,
-    val authorUrl: String,
-    val authorIconUrl: String,
-    val imageThumbWidth: Int = 480,
-    val imageFullMaxWidth: Int = 1920,
-    @Serializable(with = ScalrMethodSerializer::class)
-    val imageScaleMethod: Scalr.Method = Scalr.Method.QUALITY,
-    val imageJpegQuality: Float = 0.9f,
+    val title: String,
+    val description: String,
+    val language: String = "en",
+    val faviconUrl: String = "/favicon.ico",
+)
+
+@Serializable
+data class AuthorConfig(
+    val name: String,
+    val url: String,
+    val iconUrl: String,
+)
+
+@Serializable
+data class AssetsConfig(
     val stylesheets: List<String> = emptyList(),
     val scripts: List<String> = emptyList(),
-    val ogpEnabled: Boolean = false,
-    val ogpWidth: Int = 1200,
-    val ogpHeight: Int = 630,
-    val ogpBackgroundColor: String = "#101827",
-    val ogpTitleColor: String = "#FFFFFF",
-    val ogpBodyColor: String = "#E5E7EB",
-    val ogpAccentColor: String = "#F97316",
-    val ogpFontPath: String? = null,
-    val ogpAuthorIconPath: String? = null,
+)
+
+@Serializable
+data class ImagesConfig(
+    val thumbWidth: Int = 480,
+    val fullMaxWidth: Int = 1920,
+    @Serializable(with = ScalrMethodSerializer::class)
+    val scaleMethod: Scalr.Method = Scalr.Method.QUALITY,
+    val jpegQuality: Float = 0.9f,
+)
+
+@Serializable
+data class OgpConfig(
+    val enabled: Boolean = false,
+    val width: Int = 1200,
+    val height: Int = 630,
+    val backgroundColor: String = "#101827",
+    val titleColor: String = "#FFFFFF",
+    val bodyColor: String = "#E5E7EB",
+    val accentColor: String = "#F97316",
+    val fontPath: String? = null,
+    val authorIconPath: String? = null,
+)
+
+@Serializable
+data class SidebarConfig(
     val recentEntryCount: Int = 10,
-    val links: Map<String, String> = emptyMap(),
 )
 
 /**
@@ -179,7 +214,7 @@ fun main(args: Array<String>) {
     println("configuration file path: $configFile")
     val conf = loadConfiguration(configFile)
 
-    val docsRootDir = configFile.parent.resolve(conf.documentRootPath).normalize()
+    val docsRootDir = configFile.parent.resolve(conf.paths.documentRoot).normalize()
     if (!docsRootDir.exists() || !docsRootDir.isDirectory()) {
         println("Invalid docs directory: $docsRootDir")
         return
@@ -188,15 +223,15 @@ fun main(args: Array<String>) {
     val baseDir = configFile.parent
     val entries = recursiveMarkdownFiles(
         conf,
-        configFile.parent.resolve(conf.documentRootPath).normalize(),
+        configFile.parent.resolve(conf.paths.documentRoot).normalize(),
         docsRootDir,
         baseDir)
     copyOverlayScript(docsRootDir)
     createEntriesHtml(conf, entries)
 
     val indexEntries = entries.take(30)
-    createIndexHtml(conf, configFile.parent.resolve(conf.indexHtmlPath).normalize(), indexEntries)
-    createRssXML(conf, configFile.parent.resolve(conf.feedXmlPath).normalize(), indexEntries)
+    createIndexHtml(conf, configFile.parent.resolve(conf.paths.indexHtml).normalize(), indexEntries)
+    createRssXML(conf, configFile.parent.resolve(conf.paths.feedXml).normalize(), indexEntries)
 }
 
 fun loadConfiguration(path: Path): Configuration {
@@ -312,22 +347,22 @@ fun loadMarkdown(conf: Configuration, rootDirPath: Path, filePath: Path, configB
 
     var ogpImageUrl: String? = null
     var ogpDescription: String? = null
-    if (conf.ogpEnabled) {
+    if (conf.ogp.enabled) {
         val ogpPath = filePath.parent.resolve("ogp.png")
         ogpDescription = sanitizeForOgp(body)
-        val ogpSiteTitle = sanitizeForOgp(conf.siteTitle, 60)
+        val ogpSiteTitle = sanitizeForOgp(conf.site.title, 60)
         val ogpEntryTitle = sanitizeForOgp(title, 80)
         val needsOgp = !ogpPath.isRegularFile() || meta.bodyMd5 != bodyDigest
         if (needsOgp) {
             try {
-                val resolvedFont = resolveConfiguredPath(configBaseDir, conf.ogpFontPath)
-                val resolvedIcon = resolveConfiguredPath(configBaseDir, conf.ogpAuthorIconPath)
-                val ogpConf = conf.copy(
-                    ogpFontPath = resolvedFont?.toString(),
-                    ogpAuthorIconPath = resolvedIcon?.toString()
+                val resolvedFont = resolveConfiguredPath(configBaseDir, conf.ogp.fontPath)
+                val resolvedIcon = resolveConfiguredPath(configBaseDir, conf.ogp.authorIconPath)
+                val resolvedOgp = conf.ogp.copy(
+                    fontPath = resolvedFont?.toString(),
+                    authorIconPath = resolvedIcon?.toString()
                 )
                 OGPGenerator.generate(
-                    conf = ogpConf,
+                    conf = resolvedOgp,
                     siteTitle = ogpSiteTitle,
                     entryTitle = ogpEntryTitle,
                     description = ogpDescription,
@@ -338,8 +373,8 @@ fun loadMarkdown(conf: Configuration, rootDirPath: Path, filePath: Path, configB
             }
         }
         val urlSegment = urlPath.trimStart('/')
-        val ogpUrl = if (urlSegment.isBlank()) URI(conf.documentBaseUrl).resolve(ogpPath.fileName.toString())
-        else URI(conf.documentBaseUrl).resolve("$urlSegment${ogpPath.fileName}")
+        val ogpUrl = if (urlSegment.isBlank()) URI(conf.site.documentBaseUrl).resolve(ogpPath.fileName.toString())
+        else URI(conf.site.documentBaseUrl).resolve("$urlSegment${ogpPath.fileName}")
         ogpImageUrl = ogpUrl.normalize().toString()
     }
 
@@ -388,8 +423,8 @@ fun createRssXML(conf: Configuration, feedXmlPath: Path, entries: List<Entry>) {
  * Builds a list of recent entries limited by configuration.
  */
 fun buildRecentEntries(conf: Configuration, entries: List<Entry>, currentUrlPath: String?): List<RecentEntry> {
-    return entries.take(conf.recentEntryCount).map {
-        val href = URI(conf.documentBaseUrl + it.urlPath).normalize().toString()
+    return entries.take(conf.sidebar.recentEntryCount).map {
+        val href = URI(conf.site.documentBaseUrl + it.urlPath).normalize().toString()
         RecentEntry(
             title = it.title,
             href = href,
@@ -483,10 +518,10 @@ fun processMarkdownImages(
                 sourcePath,
                 destFull,
                 destThumb,
-                conf.imageFullMaxWidth,
-                conf.imageThumbWidth,
-                conf.imageScaleMethod,
-                conf.imageJpegQuality
+                conf.images.fullMaxWidth,
+                conf.images.thumbWidth,
+                conf.images.scaleMethod,
+                conf.images.jpegQuality
             )
         } catch (e: Exception) {
             println("Failed to resize image $sourcePath: ${e.message}")
