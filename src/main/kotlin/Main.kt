@@ -11,8 +11,6 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.*
-import com.akuleshov7.ktoml.TomlInputConfig
-import com.akuleshov7.ktoml.TomlOutputConfig
 import com.akuleshov7.ktoml.file.TomlFileWriter
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
@@ -21,7 +19,6 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import kotlinx.serialization.modules.EmptySerializersModule
 import java.net.URI
 import java.security.MessageDigest
 import kotlin.io.path.*
@@ -133,6 +130,7 @@ data class EntryMetaLegacy(
     val updateDate: String,
     val bodyMd5: String,
 )
+
 val DIGEST = MessageDigest.getInstance("SHA-256") ?: error("Failed to make a digest instance.")
 
 fun convertToRssDateTimeFormat(dateTime: String, fromZoneId: ZoneId, toZoneId: ZoneId): String {
@@ -273,23 +271,15 @@ fun loadMarkdown(conf: Configuration, rootDirPath: Path, filePath: Path, configB
     val metaFilePath = filePath.parent.resolve("meta.toml")
     val metaSummary = truncateSummary(body)
     var parsedFromLegacy = false
-    val tomlLenient = TomlFileReader(
-        TomlInputConfig(ignoreUnknownNames = true, allowNullValues = true),
-        TomlOutputConfig(),
-        EmptySerializersModule()
-    )
     val existingMeta = if (metaFilePath.isRegularFile()) {
         runCatching {
-            tomlLenient.decodeFromFile(
-                EntryMeta.serializer(),
-                metaFilePath.toAbsolutePath().toString()
-            )
+            TomlReaders.decodeMeta(EntryMeta.serializer(), metaFilePath)
         }.getOrElse { ex ->
             val isMissing = ex::class.simpleName == "MissingRequiredPropertyException"
             if (isMissing) {
                 println("Failed to read meta.toml ($metaFilePath), attempting legacy parse. ${ex.message}")
                 val legacy = runCatching {
-                    tomlLenient.decodeFromFile(EntryMetaLegacy.serializer(), metaFilePath.toAbsolutePath().toString())
+                    TomlReaders.decodeMeta(EntryMetaLegacy.serializer(), metaFilePath)
                 }.getOrNull()
                 if (legacy != null) {
                     parsedFromLegacy = true
