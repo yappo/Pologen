@@ -124,13 +124,6 @@ data class EntryMeta(
     val toc: List<TocEntry> = emptyList(),
 )
 
-@Serializable
-data class EntryMetaLegacy(
-    val publishDate: String,
-    val updateDate: String,
-    val bodyMd5: String,
-)
-
 val DIGEST = MessageDigest.getInstance("SHA-256") ?: error("Failed to make a digest instance.")
 
 fun convertToRssDateTimeFormat(dateTime: String, fromZoneId: ZoneId, toZoneId: ZoneId): String {
@@ -270,34 +263,12 @@ fun loadMarkdown(conf: Configuration, rootDirPath: Path, filePath: Path, configB
     val currentDatTime = currentDateTimeInJST()
     val metaFilePath = filePath.parent.resolve("meta.toml")
     val metaSummary = truncateSummary(body)
-    var parsedFromLegacy = false
     val existingMeta = if (metaFilePath.isRegularFile()) {
         runCatching {
             TomlReaders.decodeMeta(EntryMeta.serializer(), metaFilePath)
         }.getOrElse { ex ->
-            val isMissing = ex::class.simpleName == "MissingRequiredPropertyException"
-            if (isMissing) {
-                println("Failed to read meta.toml ($metaFilePath), attempting legacy parse. ${ex.message}")
-                val legacy = runCatching {
-                    TomlReaders.decodeMeta(EntryMetaLegacy.serializer(), metaFilePath)
-                }.getOrNull()
-                if (legacy != null) {
-                    parsedFromLegacy = true
-                    EntryMeta(
-                        publishDate = legacy.publishDate,
-                        updateDate = legacy.updateDate,
-                        bodyMd5 = legacy.bodyMd5,
-                        title = title,
-                        summary = metaSummary,
-                        toc = tocItems
-                    )
-                } else {
-                    null
-                }
-            } else {
-                println("Failed to parse meta.toml ($metaFilePath): ${ex.message}. Recreating.")
-                null
-            }
+            println("Failed to parse meta.toml ($metaFilePath): ${ex.message}. Recreating.")
+            null
         }
     } else {
         null
