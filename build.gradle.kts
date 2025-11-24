@@ -24,8 +24,8 @@ dependencies {
     // App deps
     implementation("org.jetbrains:markdown:0.7.3")
     implementation("org.apache.commons:commons-text:1.10.0")
-    implementation("com.akuleshov7:ktoml-core:0.5.1")
-    implementation("com.akuleshov7:ktoml-file:0.5.1")
+    implementation("com.akuleshov7:ktoml-core:0.7.1")
+    implementation("com.akuleshov7:ktoml-file:0.7.1")
     implementation("gg.jte:jte:3.2.1")
     implementation("gg.jte:jte-kotlin:3.2.1")
     implementation("org.imgscalr:imgscalr-lib:4.2")
