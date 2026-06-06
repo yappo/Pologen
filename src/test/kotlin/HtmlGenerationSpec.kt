@@ -3,6 +3,9 @@ package jp.yappo.pologen
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
+import jp.yappo.pologen.domain.support.convertToRssDateTimeFormat
+import jp.yappo.pologen.domain.model.Entry
+import jp.yappo.pologen.infrastructure.rendering.SiteRenderer
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.ZoneId
@@ -25,7 +28,8 @@ class HtmlGenerationSpec : FunSpec({
         )
         val conf = sampleConfiguration()
 
-        createEntryHtml(conf, entry, listOf(entry))
+        val renderer = SiteRenderer()
+        renderer.renderEntries(conf, listOf(entry))
 
         val written = dir.resolve("index.html").readText()
         written shouldContain "Hello <em>world</em>"
@@ -54,7 +58,8 @@ class HtmlGenerationSpec : FunSpec({
 
         val outPath = tmp.resolve("out/index.html")
         Files.createDirectories(outPath.parent)
-        createIndexHtml(conf, outPath, listOf(entry))
+        val renderer = SiteRenderer()
+        renderer.renderIndex(conf, outPath, listOf(entry))
 
         val html = outPath.readText()
         html shouldContain "PostTitle"

@@ -1,5 +1,10 @@
 package jp.yappo.pologen
 
+import jp.yappo.pologen.domain.config.AuthorConfig
+import jp.yappo.pologen.domain.config.Configuration
+import jp.yappo.pologen.domain.config.PathsConfig
+import jp.yappo.pologen.domain.config.SiteConfig
+
 /**
  * Shared helper for constructing a minimal but valid Configuration for tests.
  */

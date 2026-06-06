@@ -1,4 +1,5 @@
 plugins {
+    application
     kotlin("jvm") version "2.1.10"
     kotlin("plugin.serialization") version "2.1.10"
     id("com.gradleup.shadow") version "9.1.0"
@@ -37,15 +38,19 @@ tasks.test {
     include("**/*Test.class", "**/*Tests.class", "**/*Spec.class")
 }
 
+application {
+    mainClass = "jp.yappo.pologen.MainKt"
+}
+
 tasks.jar {
     manifest {
-        attributes["Main-Class"] = "jp.yappo.pologen.MainKt"
+        attributes["Main-Class"] = application.mainClass.get()
     }
 }
 
 tasks.shadowJar {
     manifest {
-        attributes["Main-Class"] = "jp.yappo.pologen.MainKt"
+        attributes["Main-Class"] = application.mainClass.get()
     }
 }
 

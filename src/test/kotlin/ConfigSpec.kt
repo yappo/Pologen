@@ -2,6 +2,8 @@ package jp.yappo.pologen
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import jp.yappo.pologen.infrastructure.config.ConfigurationLoader
+import jp.yappo.pologen.infrastructure.rendering.sanitizeLinks
 import java.nio.file.Path
 import kotlin.io.path.createTempDirectory
 import kotlin.io.path.writeText
@@ -49,7 +51,7 @@ class ConfigSpec : FunSpec({
             SNS = "https://sns.example.com"
             """.trimIndent()
         )
-        val conf = loadConfiguration(file)
+        val conf = ConfigurationLoader().load(file)
         conf.paths.documentRoot shouldBe "docs"
         conf.paths.indexHtml shouldBe "index.html"
         conf.paths.feedXml shouldBe "feed.xml"
@@ -103,7 +105,7 @@ class ConfigSpec : FunSpec({
             "b b" = "https://b.example.com"
             """.trimIndent()
         )
-        val conf = loadConfiguration(file)
+        val conf = ConfigurationLoader().load(file)
         val sanitized = sanitizeLinks(conf.links)
         sanitized.keys.toList() shouldBe listOf("'a'", "b b")
         sanitized.values.toList() shouldBe listOf("https://a.example.com", "https://b.example.com")

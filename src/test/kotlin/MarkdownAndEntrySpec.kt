@@ -3,6 +3,8 @@ package jp.yappo.pologen
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldContainAll
 import io.kotest.matchers.shouldBe
+import jp.yappo.pologen.domain.support.convertToRssDateTimeFormat
+import jp.yappo.pologen.infrastructure.markdown.MarkdownService
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.ZoneId
@@ -34,7 +36,8 @@ class MarkdownAndEntrySpec : FunSpec({
             """.trimIndent()
         )
 
-        val entry = loadMarkdown(sampleConfiguration(), root, md, root)
+        val service = MarkdownService()
+        val entry = service.collectEntries(sampleConfiguration(), root, root, root).first()
 
         entry.title shouldBe "My Title"
         entry.urlPath shouldBe "/2025/10/post/"
@@ -81,7 +84,8 @@ class MarkdownAndEntrySpec : FunSpec({
             bodyMd5 = ""
         """.trimIndent())
 
-        val list = recursiveMarkdownFiles(sampleConfiguration(), root, root, root)
+        val service = MarkdownService()
+        val list = service.collectEntries(sampleConfiguration(), root, root, root)
         list.size shouldBe 2
         list.map { it.urlPath } shouldContainAll listOf("/a/", "/b/")
     }

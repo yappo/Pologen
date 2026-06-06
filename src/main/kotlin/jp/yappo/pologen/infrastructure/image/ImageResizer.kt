@@ -1,5 +1,6 @@
-package jp.yappo.pologen
+package jp.yappo.pologen.infrastructure.image
 
+import org.imgscalr.Scalr
 import java.awt.Color
 import java.awt.image.BufferedImage
 import java.nio.file.Files
@@ -8,11 +9,7 @@ import javax.imageio.IIOImage
 import javax.imageio.ImageIO
 import javax.imageio.ImageWriteParam
 import javax.imageio.stream.ImageOutputStream
-import org.imgscalr.Scalr
 
-/**
- * Generates responsive image variants (full and thumbnail) for a source asset.
- */
 fun generateResizedImages(
     source: Path,
     destFull: Path,
@@ -62,9 +59,6 @@ private fun writeImage(image: BufferedImage, dest: Path, quality: Float) {
     }
 }
 
-/**
- * Writes the supplied [image] to [dest] as a JPEG at the requested [quality].
- */
 fun writeJpeg(image: BufferedImage, dest: Path, quality: Float) {
     val clamped = quality.coerceIn(0f, 1f)
     val writer = ImageIO.getImageWritersByFormatName("jpg").asSequence().firstOrNull()

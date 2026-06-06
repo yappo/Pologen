@@ -1,6 +1,12 @@
-package jp.yappo.pologen
+package jp.yappo.pologen.infrastructure.ogp
 
-import java.awt.*
+import jp.yappo.pologen.domain.config.OgpConfig
+import java.awt.BasicStroke
+import java.awt.Color
+import java.awt.Font
+import java.awt.Graphics2D
+import java.awt.Image
+import java.awt.RenderingHints
 import java.awt.geom.Ellipse2D
 import java.awt.image.BufferedImage
 import java.nio.file.Files
@@ -8,9 +14,6 @@ import java.nio.file.Path
 import javax.imageio.ImageIO
 import kotlin.io.path.isRegularFile
 
-/**
- * Generates OGP images for entries using Java2D.
- */
 object OGPGenerator {
     private const val AUTHOR_ICON_SIZE = 96
     private const val ACCENT_BAR_HEIGHT = 8
@@ -192,7 +195,7 @@ object OGPGenerator {
         return y
     }
 
-    private fun splitWordByWidth(word: String, fm: FontMetrics, maxWidth: Int): List<String> {
+    private fun splitWordByWidth(word: String, fm: java.awt.FontMetrics, maxWidth: Int): List<String> {
         if (word.isEmpty()) return emptyList()
         val parts = mutableListOf<String>()
         var current = StringBuilder()
