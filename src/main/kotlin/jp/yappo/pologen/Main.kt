@@ -11,6 +11,5 @@ fun main(args: Array<String>) {
 
     val configFile = Path.of(args[0]).toAbsolutePath().normalize()
     println("configuration file path: $configFile")
-    val useCase = BuildSiteUseCase()
-    useCase.execute(configFile)
+    BuildSiteUseCase().execute(configFile)
 }

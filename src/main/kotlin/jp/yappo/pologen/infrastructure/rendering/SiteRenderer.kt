@@ -1,18 +1,17 @@
 package jp.yappo.pologen.infrastructure.rendering
 
+import jp.yappo.pologen.application.port.SiteWriter
 import jp.yappo.pologen.domain.config.Configuration
 import jp.yappo.pologen.domain.model.Entry
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardCopyOption
 import kotlin.io.path.createDirectories
 import kotlin.io.path.exists
-import kotlin.io.path.isDirectory
-import kotlin.io.path.name
-import kotlin.io.path.readText
 
-class SiteRenderer {
+class SiteRenderer : SiteWriter {
 
-    fun copyOverlayScript(outputRoot: Path) {
+    override fun copyAssets(outputRoot: Path) {
         val assetsDir = outputRoot.resolve("assets")
         if (!assetsDir.exists()) {
             assetsDir.createDirectories()
@@ -21,12 +20,12 @@ class SiteRenderer {
         val resource = SiteRenderer::class.java.classLoader.getResourceAsStream("assets/pologen.js")
         if (resource != null) {
             resource.use { input ->
-                Files.copy(input, scriptPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                Files.copy(input, scriptPath, StandardCopyOption.REPLACE_EXISTING)
             }
         }
     }
 
-    fun renderEntries(conf: Configuration, entries: List<Entry>) {
+    override fun renderEntries(conf: Configuration, entries: List<Entry>) {
         entries.forEach { entry ->
             val recentEntries = buildRecentEntries(conf, entries, entry.urlPath)
             val content = Templates.renderEntry(conf, entry, recentEntries)
@@ -35,13 +34,13 @@ class SiteRenderer {
         println("Created ${entries.size} entries.")
     }
 
-    fun renderIndex(conf: Configuration, indexHtmlPath: Path, entries: List<Entry>) {
+    override fun renderIndex(conf: Configuration, indexHtmlPath: Path, entries: List<Entry>) {
         val recentEntries = buildRecentEntries(conf, entries, currentUrlPath = null)
         val content = Templates.renderIndex(conf, entries, recentEntries)
         writeFile(indexHtmlPath, content)
     }
 
-    fun renderFeed(conf: Configuration, feedXmlPath: Path, entries: List<Entry>) {
+    override fun renderFeed(conf: Configuration, feedXmlPath: Path, entries: List<Entry>) {
         val content = Templates.renderFeed(conf, entries)
         writeFile(feedXmlPath, content)
     }

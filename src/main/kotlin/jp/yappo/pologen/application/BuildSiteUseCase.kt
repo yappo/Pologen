@@ -1,26 +1,27 @@
 package jp.yappo.pologen.application
 
-import jp.yappo.pologen.domain.config.Configuration
+import jp.yappo.pologen.application.port.ConfigurationReader
+import jp.yappo.pologen.application.port.EntrySource
+import jp.yappo.pologen.application.port.SiteWriter
 import jp.yappo.pologen.infrastructure.config.ConfigurationLoader
 import jp.yappo.pologen.infrastructure.markdown.MarkdownService
 import jp.yappo.pologen.infrastructure.rendering.SiteRenderer
 import java.nio.file.Path
-import java.security.MessageDigest
 
 class BuildSiteUseCase(
-    private val configurationLoader: ConfigurationLoader = ConfigurationLoader(),
-    private val markdownService: MarkdownService = MarkdownService(MessageDigest.getInstance("SHA-256")),
-    private val siteRenderer: SiteRenderer = SiteRenderer(),
+    private val configurationReader: ConfigurationReader = ConfigurationLoader(),
+    private val entrySource: EntrySource = MarkdownService(),
+    private val siteWriter: SiteWriter = SiteRenderer(),
 ) {
 
     fun execute(configPath: Path) {
-        val configuration = configurationLoader.load(configPath)
-        val docsRootDir = configPath.parent.resolve(configuration.paths.documentRoot).normalize()
-        val entries = markdownService.collectEntries(configuration, docsRootDir, docsRootDir, configPath.parent)
-        siteRenderer.copyOverlayScript(docsRootDir)
-        siteRenderer.renderEntries(configuration, entries)
+        val configuration = configurationReader.load(configPath)
+        val paths = SiteBuildPaths.resolve(configPath, configuration)
+        val entries = entrySource.collectEntries(configuration, paths.documentRoot, paths.configBaseDir)
+        siteWriter.copyAssets(paths.documentRoot)
+        siteWriter.renderEntries(configuration, entries)
         val indexEntries = entries.take(30)
-        siteRenderer.renderIndex(configuration, configPath.parent.resolve(configuration.paths.indexHtml).normalize(), indexEntries)
-        siteRenderer.renderFeed(configuration, configPath.parent.resolve(configuration.paths.feedXml).normalize(), indexEntries)
+        siteWriter.renderIndex(configuration, paths.indexHtml, indexEntries)
+        siteWriter.renderFeed(configuration, paths.feedXml, indexEntries)
     }
 }
