@@ -1,4 +1,4 @@
-@import jp.yappo.pologen.EntryPageModel
+@import jp.yappo.pologen.infrastructure.rendering.EntryPageModel
 @param model:EntryPageModel
 <!DOCTYPE html>
 <html lang="en">

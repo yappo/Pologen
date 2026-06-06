@@ -1,17 +1,18 @@
-package jp.yappo.pologen
+package jp.yappo.pologen.infrastructure.rendering
 
 import gg.jte.ContentType
 import gg.jte.TemplateEngine
 import gg.jte.output.StringOutput
 import gg.jte.resolve.ResourceCodeResolver
+import jp.yappo.pologen.domain.config.Configuration
+import jp.yappo.pologen.domain.model.Entry
+import jp.yappo.pologen.domain.model.TocEntry
 import org.apache.commons.text.StringEscapeUtils
 import java.net.URI
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
-import jp.yappo.pologen.domain.config.Configuration
-import jp.yappo.pologen.domain.model.Entry
-import jp.yappo.pologen.domain.model.TocEntry
+import java.util.LinkedHashMap
 
 data class AuthorMeta(
     val name: String,
@@ -186,6 +187,7 @@ object Templates {
         val parentClassLoader = Templates::class.java.classLoader
         return TemplateEngine.create(resolver, classDirectory, contentType, parentClassLoader)
     }
+
     private fun buildShareTargets(permalink: String, title: String, siteTitle: String): List<ShareTarget> {
         val encodedUrl = URLEncoder.encode(permalink, StandardCharsets.UTF_8)
         val encodedTitle = URLEncoder.encode("$siteTitle - $title", StandardCharsets.UTF_8)

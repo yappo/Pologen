@@ -1,7 +1,5 @@
 package jp.yappo.pologen.infrastructure.rendering
 
-import jp.yappo.pologen.RecentEntry
-import jp.yappo.pologen.Templates
 import jp.yappo.pologen.domain.config.Configuration
 import jp.yappo.pologen.domain.model.Entry
 import java.nio.file.Files

@@ -1,7 +1,7 @@
 package jp.yappo.pologen.infrastructure.markdown
 
-import jp.yappo.pologen.OGPGenerator
-import jp.yappo.pologen.TomlReaders
+import jp.yappo.pologen.infrastructure.ogp.OGPGenerator
+import jp.yappo.pologen.infrastructure.config.TomlReaders
 import com.akuleshov7.ktoml.file.TomlFileWriter
 import jp.yappo.pologen.application.util.convertToRssDateTimeFormat
 import jp.yappo.pologen.application.util.currentDateTimeInJST
@@ -11,7 +11,7 @@ import jp.yappo.pologen.domain.config.Configuration
 import jp.yappo.pologen.domain.config.EntryMeta
 import jp.yappo.pologen.domain.model.Entry
 import jp.yappo.pologen.domain.model.TocEntry
-import jp.yappo.pologen.generateResizedImages
+import jp.yappo.pologen.infrastructure.image.generateResizedImages
 import jp.yappo.pologen.infrastructure.util.resolveConfiguredPath
 import org.apache.commons.text.StringEscapeUtils
 import java.io.File
@@ -142,7 +142,7 @@ class MarkdownService(
                         fontPath = resolvedFont?.toString(),
                         authorIconPath = resolvedIcon?.toString()
                     )
-                    jp.yappo.pologen.OGPGenerator.generate(
+                    OGPGenerator.generate(
                         conf = resolvedOgp,
                         siteTitle = ogpSiteTitle,
                         entryTitle = ogpEntryTitle,

@@ -3,6 +3,7 @@ package jp.yappo.pologen
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import jp.yappo.pologen.infrastructure.config.ConfigurationLoader
+import jp.yappo.pologen.infrastructure.rendering.sanitizeLinks
 import java.nio.file.Path
 import kotlin.io.path.createTempDirectory
 import kotlin.io.path.writeText
