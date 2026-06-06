@@ -9,10 +9,13 @@ import jp.yappo.pologen.application.port.SiteWriter
 import jp.yappo.pologen.domain.config.Configuration
 import jp.yappo.pologen.domain.model.Entry
 import java.nio.file.Path
+import kotlin.io.path.createTempDirectory
 
 class BuildSiteUseCaseSpec : FunSpec({
     test("execute resolves configured paths and writes generated site through ports") {
-        val configPath = Path.of("/tmp/pologen/config.toml")
+        val tempDir = createTempDirectory("pologen-usecase-")
+        val configPath = tempDir.resolve("config.toml")
+        val documentRoot = tempDir.resolve("htdocs").also { it.toFile().mkdirs() }
         val configuration = sampleConfiguration().copy(
             paths = sampleConfiguration().paths.copy(
                 documentRoot = "htdocs",
@@ -21,7 +24,7 @@ class BuildSiteUseCaseSpec : FunSpec({
             )
         )
         val entry = Entry(
-            filePath = Path.of("/tmp/pologen/htdocs/post/index.md"),
+            filePath = documentRoot.resolve("post/index.md"),
             urlPath = "/post/",
             title = "Post",
             publishDate = "Wed, 01 Jan 2025 18:04:05 GMT",
@@ -39,24 +42,44 @@ class BuildSiteUseCaseSpec : FunSpec({
             siteWriter = siteWriter,
         ).execute(configPath)
 
-        entrySource.documentRoot shouldBe Path.of("/tmp/pologen/htdocs")
-        entrySource.configBaseDir shouldBe Path.of("/tmp/pologen")
-        siteWriter.outputRoot shouldBe Path.of("/tmp/pologen/htdocs")
-        siteWriter.indexHtmlPath shouldBe Path.of("/tmp/pologen/public/index.html")
-        siteWriter.feedXmlPath shouldBe Path.of("/tmp/pologen/public/feed.xml")
+        entrySource.documentRoot shouldBe tempDir.resolve("htdocs")
+        entrySource.configBaseDir shouldBe tempDir
+        siteWriter.outputRoot shouldBe tempDir.resolve("htdocs")
+        siteWriter.indexHtmlPath shouldBe tempDir.resolve("public/index.html")
+        siteWriter.feedXmlPath shouldBe tempDir.resolve("public/feed.xml")
         siteWriter.entriesForPages shouldBe listOf(entry)
         siteWriter.entriesForIndex shouldBe listOf(entry)
         siteWriter.entriesForFeed shouldBe listOf(entry)
+    }
+
+    test("execute returns before writing when document root is invalid") {
+        val tempDir = createTempDirectory("pologen-usecase-invalid-")
+        val configuration = sampleConfiguration().copy(
+            paths = sampleConfiguration().paths.copy(documentRoot = "missing")
+        )
+        val entrySource = RecordingEntrySource(emptyList())
+        val siteWriter = RecordingSiteWriter()
+
+        BuildSiteUseCase(
+            configurationReader = ConfigurationReader { configuration },
+            entrySource = entrySource,
+            siteWriter = siteWriter,
+        ).execute(tempDir.resolve("config.toml"))
+
+        entrySource.wasCalled shouldBe false
+        siteWriter.wasCalled shouldBe false
     }
 })
 
 private class RecordingEntrySource(
     private val entries: List<Entry>,
 ) : EntrySource {
+    var wasCalled: Boolean = false
     lateinit var documentRoot: Path
     lateinit var configBaseDir: Path
 
     override fun collectEntries(configuration: Configuration, documentRoot: Path, configBaseDir: Path): List<Entry> {
+        wasCalled = true
         this.documentRoot = documentRoot
         this.configBaseDir = configBaseDir
         return entries
@@ -64,6 +87,7 @@ private class RecordingEntrySource(
 }
 
 private class RecordingSiteWriter : SiteWriter {
+    var wasCalled: Boolean = false
     lateinit var outputRoot: Path
     lateinit var indexHtmlPath: Path
     lateinit var feedXmlPath: Path
@@ -72,19 +96,23 @@ private class RecordingSiteWriter : SiteWriter {
     lateinit var entriesForFeed: List<Entry>
 
     override fun copyAssets(outputRoot: Path) {
+        wasCalled = true
         this.outputRoot = outputRoot
     }
 
     override fun renderEntries(configuration: Configuration, entries: List<Entry>) {
+        wasCalled = true
         entriesForPages = entries
     }
 
     override fun renderIndex(configuration: Configuration, indexHtmlPath: Path, entries: List<Entry>) {
+        wasCalled = true
         this.indexHtmlPath = indexHtmlPath
         entriesForIndex = entries
     }
 
     override fun renderFeed(configuration: Configuration, feedXmlPath: Path, entries: List<Entry>) {
+        wasCalled = true
         this.feedXmlPath = feedXmlPath
         entriesForFeed = entries
     }
