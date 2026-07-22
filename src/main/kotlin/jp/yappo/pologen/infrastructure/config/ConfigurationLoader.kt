@@ -48,6 +48,18 @@ internal fun validateConfiguration(configuration: Configuration) {
         require(configuration.ogp.width > 0) { "ogp.width must be greater than zero" }
         require(configuration.ogp.height > 0) { "ogp.height must be greater than zero" }
     }
+    if (configuration.archive.enabled) {
+        val archiveOutput = Path.of(configuration.archive.output)
+        require(configuration.archive.output.isNotBlank() && !archiveOutput.isAbsolute) {
+            "archive.output must be a non-blank relative path"
+        }
+        require(!archiveOutput.normalize().startsWith("..")) {
+            "archive.output must stay inside paths.documentRoot"
+        }
+        require(configuration.archive.url.startsWith("/")) {
+            "archive.url must start with /"
+        }
+    }
     val documentBaseUri = runCatching { URI(configuration.site.documentBaseUrl) }.getOrNull()
     require(
         documentBaseUri?.isAbsolute == true &&
@@ -64,7 +76,8 @@ private fun validateTemplateDirectory(configuration: Configuration) {
     require(Files.isDirectory(directory)) {
         "templates.directory does not exist or is not a directory: $directory"
     }
-    REQUIRED_TEMPLATES.forEach { templateName ->
+    val requiredTemplates = REQUIRED_TEMPLATES + if (configuration.archive.enabled) listOf("archive.kte") else emptyList()
+    requiredTemplates.forEach { templateName ->
         require(Files.isRegularFile(directory.resolve(templateName))) {
             "Custom template is missing: ${directory.resolve(templateName)}"
         }

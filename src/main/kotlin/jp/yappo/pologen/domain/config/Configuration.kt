@@ -21,6 +21,7 @@ data class Configuration(
     val ogp: OgpConfig = OgpConfig(),
     val sidebar: SidebarConfig = SidebarConfig(),
     val templates: TemplatesConfig = TemplatesConfig(),
+    val archive: ArchiveConfig = ArchiveConfig(),
     val links: Map<String, String> = emptyMap(),
 )
 
@@ -85,6 +86,13 @@ data class SidebarConfig(
 @Serializable
 data class TemplatesConfig(
     val directory: String? = null,
+)
+
+@Serializable
+data class ArchiveConfig(
+    val enabled: Boolean = false,
+    val output: String = "archive/index.html",
+    val url: String = "/archive/",
 )
 
 @Serializable

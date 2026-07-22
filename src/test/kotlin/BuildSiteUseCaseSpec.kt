@@ -7,6 +7,7 @@ import jp.yappo.pologen.application.port.ConfigurationReader
 import jp.yappo.pologen.application.port.EntrySource
 import jp.yappo.pologen.application.port.SiteWriter
 import jp.yappo.pologen.domain.config.Configuration
+import jp.yappo.pologen.domain.config.ArchiveConfig
 import jp.yappo.pologen.domain.model.Entry
 import java.nio.file.Path
 import kotlin.io.path.createTempDirectory
@@ -21,7 +22,8 @@ class BuildSiteUseCaseSpec : FunSpec({
                 documentRoot = "htdocs",
                 indexHtml = "public/index.html",
                 feedXml = "public/feed.xml",
-            )
+            ),
+            archive = ArchiveConfig(enabled = true),
         )
         val entry = Entry(
             filePath = documentRoot.resolve("post/index.md"),
@@ -52,6 +54,8 @@ class BuildSiteUseCaseSpec : FunSpec({
         siteWriter.entriesForPages shouldBe listOf(entry)
         siteWriter.entriesForIndex shouldBe listOf(entry)
         siteWriter.entriesForFeed shouldBe listOf(entry)
+        siteWriter.archiveHtmlPath shouldBe documentRoot.resolve("archive/index.html")
+        siteWriter.entriesForArchive shouldBe listOf(entry)
     }
 
     test("execute returns before writing when document root is invalid") {
@@ -97,6 +101,8 @@ private class RecordingSiteWriter : SiteWriter {
     lateinit var entriesForPages: List<Entry>
     lateinit var entriesForIndex: List<Entry>
     lateinit var entriesForFeed: List<Entry>
+    var archiveHtmlPath: Path? = null
+    var entriesForArchive: List<Entry> = emptyList()
 
     override fun copyAssets(outputRoot: Path) {
         wasCalled = true
@@ -118,5 +124,11 @@ private class RecordingSiteWriter : SiteWriter {
         wasCalled = true
         this.feedXmlPath = feedXmlPath
         entriesForFeed = entries
+    }
+
+    override fun renderArchive(configuration: Configuration, archiveHtmlPath: Path, entries: List<Entry>) {
+        wasCalled = true
+        this.archiveHtmlPath = archiveHtmlPath
+        entriesForArchive = entries
     }
 }

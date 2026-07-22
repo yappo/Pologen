@@ -41,6 +41,26 @@ class CustomTemplateSpec : FunSpec({
         error.message shouldContain templateDir.resolve("feed.kte").toString()
     }
 
+    test("archive template is required only when archive generation is enabled") {
+        val root = createTempDirectory("pologen-custom-archive-template-")
+        val templateDir = root.resolve("templates").also { it.createDirectories() }
+        writeCustomTemplates(templateDir, "CUSTOM")
+        val configPath = root.resolve("config.toml")
+        configPath.writeText(
+            configurationToml() + "\n\n" +
+                """
+                [archive]
+                enabled = true
+                """.trimIndent()
+        )
+
+        val error = shouldThrow<IllegalArgumentException> {
+            ConfigurationLoader().load(configPath)
+        }
+
+        error.message shouldContain templateDir.resolve("archive.kte").toString()
+    }
+
     test("custom templates render all outputs and changes invalidate cached entries") {
         val root = createTempDirectory("pologen-custom-template-render-")
         val entryDir = root.resolve("post").also { it.createDirectories() }

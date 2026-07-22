@@ -7,6 +7,7 @@ import jp.yappo.pologen.domain.support.convertToRssDateTimeFormat
 import jp.yappo.pologen.domain.model.Entry
 import jp.yappo.pologen.domain.model.TocEntry
 import jp.yappo.pologen.domain.config.AssetsConfig
+import jp.yappo.pologen.domain.config.ArchiveConfig
 import jp.yappo.pologen.infrastructure.rendering.SiteRenderer
 import java.nio.file.Files
 import java.nio.file.Path
@@ -46,6 +47,7 @@ class HtmlGenerationSpec : FunSpec({
                 stylesheets = listOf("/assets/custom.css"),
                 scripts = listOf("/assets/custom.js"),
             ),
+            archive = ArchiveConfig(enabled = true),
         )
 
         val renderer = SiteRenderer()
@@ -65,6 +67,7 @@ class HtmlGenerationSpec : FunSpec({
         written shouldContain "/assets/custom.js"
         written shouldContain "lg:sticky lg:top-4"
         written shouldContain "Share on X"
+        written shouldContain "href=\"https://example.com/archive/\""
     }
 
     test("createIndexHtml writes index file listing entries") {
@@ -73,6 +76,7 @@ class HtmlGenerationSpec : FunSpec({
         val conf = base.copy(
             paths = base.paths.copy(indexHtml = "out/index.html"),
             site = base.site.copy(language = "ja"),
+            archive = ArchiveConfig(enabled = true),
         )
         val entry = Entry(
             filePath = tmp.resolve("dummy/index.md"),
@@ -97,5 +101,6 @@ class HtmlGenerationSpec : FunSpec({
         html shouldContain "<html lang=\"ja\">"
         html shouldContain "name=\"viewport\""
         html shouldContain "/assets/pologen.css"
+        html shouldContain "href=\"https://example.com/archive/\""
     }
 })

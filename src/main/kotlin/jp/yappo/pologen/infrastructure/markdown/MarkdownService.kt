@@ -209,7 +209,7 @@ class MarkdownService(
             if (path.isAbsolute) path.normalize() else configBaseDir.resolve(path).normalize()
         }
         if (customDirectory != null) {
-            val fingerprints = TEMPLATE_NAMES.map { templateName ->
+            val fingerprints = templateNames(conf).map { templateName ->
                 val templatePath = customDirectory.resolve(templateName)
                 require(templatePath.isRegularFile()) { "Custom template is missing: $templatePath" }
                 sha256Hex(templatePath)
@@ -217,7 +217,7 @@ class MarkdownService(
             return sha256Hex(fingerprints.joinToString("|"))
         }
         val classLoader = MarkdownService::class.java.classLoader
-        val fingerprints = TEMPLATE_NAMES.map { templateName ->
+        val fingerprints = templateNames(conf).map { templateName ->
             val resourcePath = "templates/$templateName"
             val bytes = requireNotNull(classLoader.getResourceAsStream(resourcePath)) {
                 "Bundled template is missing: $resourcePath"
@@ -226,6 +226,9 @@ class MarkdownService(
         }
         return sha256Hex(fingerprints.joinToString("|"))
     }
+
+    private fun templateNames(conf: Configuration): List<String> =
+        TEMPLATE_NAMES + if (conf.archive.enabled) listOf("archive.kte") else emptyList()
 
     private data class EntryDraft(
         val filePath: Path,
