@@ -34,6 +34,9 @@
                     ${model.site.title}
                 </a>
             </div>
+            @if (model.site.archiveUrl != null)
+                <a href="${model.site.archiveUrl}" class="text-sm text-slate-300 hover:text-white transition">Archive</a>
+            @endif
         </div>
     </header>
     <main class="flex-1">

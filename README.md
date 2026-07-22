@@ -60,6 +60,11 @@ scripts = ["/assets/custom.js"]
 [templates]
 directory = "templates"
 
+[archive]
+enabled = true
+output = "archive/index.html"
+url = "/archive/"
+
 [sidebar]
 recentEntryCount = 10
 
@@ -76,11 +81,12 @@ recentEntryCount = 10
 - `sidebar.recentEntryCount` controls how many items appear in the “Recent posts” card; the `[links]` table is an insertion-order map rendered as external links in the sidebar (quote keys like `"Community Portal"` if they contain spaces).
 - The `[ogp]` table enables/disables image generation and configures the canvas, colors, and optional font/author icon assets. If `enabled = false`, OGP rendering and meta tags are skipped entirely.
 - `templates.directory` optionally selects a directory containing `entry.kte`, `index.kte`, and `feed.kte`. Relative paths resolve from `config.toml`; omitting the table keeps the bundled templates. Template files are trusted executable jte/Kotlin input.
+- `[archive]` optionally emits a complete article archive grouped by month. `output` is relative to `paths.documentRoot`, while `url` is the public root-relative link shown on entry and index pages.
 
 ## Styling Defaults
 The bundled templates use a precompiled `/assets/pologen.css` containing the required Tailwind CSS, daisyUI, and Typography styles. The generator copies that stylesheet and `/assets/pologen.js` into the document root, so generated pages do not depend on Tailwind Play CDN at runtime. Custom assets are appended after these defaults.
 
-To customize page structure, copy all three bundled templates from `src/main/resources/templates` into the configured `templates.directory` and edit them together. Generation fails before writing output when the directory or a required template is missing. Changing a custom template invalidates cached entry HTML.
+To customize page structure, copy the bundled templates from `src/main/resources/templates` into the configured `templates.directory` and edit them together. `entry.kte`, `index.kte`, and `feed.kte` are always required; `archive.kte` is additionally required when the archive is enabled. Generation fails before writing output when the directory or a required template is missing. Changing a custom template invalidates cached entry HTML.
 
 ## Image Handling
 Markdown image syntax (`![alt](photo.jpg)`) renders responsive figures: Pologen resolves JPEG, PNG, GIF, and WebP input relative to the post folder, emits `photo-full.jpg` and `photo-thumb.jpg` with the configured sizes, and injects HTML that opens the full asset. The output is always encoded as JPEG, so the file extension matches its content. Unchanged image sources are reused using SHA-256 fingerprints stored in `meta.toml`.
@@ -102,6 +108,7 @@ Each post resides in its own directory beneath `paths.documentRoot` and must con
 - A fully rendered `index.html` is emitted per entry directory, including metadata, author links, and embedded Markdown content.
 - `paths.indexHtml` receives a landing page that lists up to 30 most recent entries (ordered lexicographically by directory), showing publication time in JST and a 140-character summary derived from the plain-text body.
 - `paths.feedXml` is populated with an RSS 2.0 feed whose items link to `site.documentBaseUrl + entry.urlPath` and reuse the same summaries (properly HTML-escaped).
+- When enabled, `[archive]` writes every entry to a month-grouped archive page and adds an Archive link to entry and index headers.
 
 ## Development & Testing
 - `./gradlew build` compiles the Kotlin sources and run checks.

@@ -28,6 +28,9 @@ class BuildSiteUseCase(
         val indexEntries = entries.take(30)
         siteWriter.renderIndex(configuration, paths.indexHtml, indexEntries)
         siteWriter.renderFeed(configuration, paths.feedXml, indexEntries)
+        paths.archiveHtml?.let { archiveHtmlPath ->
+            siteWriter.renderArchive(configuration, archiveHtmlPath, entries)
+        }
         return true
     }
 }

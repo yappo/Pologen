@@ -15,7 +15,10 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import java.util.LinkedHashMap
+import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 
 data class AuthorMeta(
@@ -34,6 +37,7 @@ data class SiteMeta(
     val stylesheets: List<String>,
     val scripts: List<String>,
     val author: AuthorMeta,
+    val archiveUrl: String?,
 )
 
 data class EntryPageModel(
@@ -81,6 +85,16 @@ data class FeedPageModel(
     val entries: List<FeedEntryModel>,
     val siteTitleEscaped: String,
     val siteDescriptionEscaped: String,
+)
+
+data class ArchiveMonthModel(
+    val label: String,
+    val entries: List<IndexEntrySummary>,
+)
+
+data class ArchivePageModel(
+    val site: SiteMeta,
+    val months: List<ArchiveMonthModel>,
 )
 
 object Templates {
@@ -163,6 +177,39 @@ object Templates {
         return output.toString()
     }
 
+    fun renderArchive(conf: Configuration, entries: List<Entry>): String {
+        val datedEntries = entries.map { entry ->
+            val date = runCatching { ZonedDateTime.parse(entry.publishDateLocal, ENTRY_DATE_FORMAT) }
+                .getOrElse {
+                    throw IllegalArgumentException(
+                        "Invalid local publish date for archive entry '${entry.title}': ${entry.publishDateLocal}",
+                        it,
+                    )
+                }
+            date to IndexEntrySummary(
+                title = entry.title,
+                href = resolveDocumentUrl(conf.site.documentBaseUrl, entry.urlPath),
+                publishDateLocal = entry.publishDateLocal,
+                summary = entry.summary,
+            )
+        }.sortedByDescending { it.first }
+        val months = datedEntries
+            .groupBy { it.first.year to it.first.monthValue }
+            .map { (_, values) ->
+                ArchiveMonthModel(
+                    label = values.first().first.format(ARCHIVE_MONTH_FORMAT),
+                    entries = values.map { it.second },
+                )
+            }
+        val output = StringOutput()
+        templateEngine(conf, ContentType.Html).render(
+            "archive.kte",
+            ArchivePageModel(site = conf.toSiteMeta(), months = months),
+            output,
+        )
+        return output.toString()
+    }
+
     private fun Configuration.toSiteMeta(): SiteMeta {
         val resolvedStyles = (DEFAULT_STYLESHEETS + assets.stylesheets).distinct()
         val resolvedScripts = (DEFAULT_SCRIPTS + assets.scripts).distinct()
@@ -179,7 +226,8 @@ object Templates {
                 name = author.name,
                 url = author.url,
                 iconUrl = author.iconUrl,
-            )
+            ),
+            archiveUrl = if (archive.enabled) resolveDocumentUrl(site.documentBaseUrl, archive.url) else null,
         )
     }
 
@@ -219,6 +267,9 @@ object Templates {
             )
         )
     }
+
+    private val ENTRY_DATE_FORMAT = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH)
+    private val ARCHIVE_MONTH_FORMAT = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH)
 }
 
 private data class TemplateEngineKey(

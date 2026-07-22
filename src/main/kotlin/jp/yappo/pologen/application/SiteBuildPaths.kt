@@ -9,6 +9,7 @@ data class SiteBuildPaths(
     val documentRoot: Path,
     val indexHtml: Path,
     val feedXml: Path,
+    val archiveHtml: Path?,
 ) {
     companion object {
         fun resolve(configPath: Path, configuration: Configuration): SiteBuildPaths {
@@ -20,6 +21,14 @@ data class SiteBuildPaths(
                 documentRoot = configBaseDir.resolve(configuration.paths.documentRoot).normalize(),
                 indexHtml = configBaseDir.resolve(configuration.paths.indexHtml).normalize(),
                 feedXml = configBaseDir.resolve(configuration.paths.feedXml).normalize(),
+                archiveHtml = if (configuration.archive.enabled) {
+                    configBaseDir.resolve(configuration.paths.documentRoot)
+                        .normalize()
+                        .resolve(configuration.archive.output)
+                        .normalize()
+                } else {
+                    null
+                },
             )
         }
     }

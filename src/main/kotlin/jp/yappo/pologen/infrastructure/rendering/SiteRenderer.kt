@@ -42,6 +42,11 @@ class SiteRenderer : SiteWriter {
         writeFile(feedXmlPath, content)
     }
 
+    override fun renderArchive(configuration: Configuration, archiveHtmlPath: Path, entries: List<Entry>) {
+        val content = Templates.renderArchive(configuration, entries)
+        writeFile(archiveHtmlPath, content)
+    }
+
     private fun buildRecentEntries(conf: Configuration, entries: List<Entry>, currentUrlPath: String?): List<RecentEntry> {
         return entries.take(conf.sidebar.recentEntryCount).map {
             val href = resolveDocumentUrl(conf.site.documentBaseUrl, it.urlPath)

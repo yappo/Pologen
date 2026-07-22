@@ -22,9 +22,12 @@
             <a href="${model.site.blogTopUrl}" class="text-2xl sm:text-3xl font-semibold tracking-tight hover:text-white transition text-center sm:text-left">
                 ${model.site.title}
             </a>
-            <a href="${model.rssUrl}" class="text-sm text-slate-300 hover:text-white transition text-center sm:text-right">
-                RSS Feed
-            </a>
+            <div class="flex items-center justify-center sm:justify-end gap-4 text-sm">
+                @if (model.site.archiveUrl != null)
+                    <a href="${model.site.archiveUrl}" class="text-slate-300 hover:text-white transition">Archive</a>
+                @endif
+                <a href="${model.rssUrl}" class="text-slate-300 hover:text-white transition">RSS Feed</a>
+            </div>
         </div>
     </header>
     <main class="flex-1">
