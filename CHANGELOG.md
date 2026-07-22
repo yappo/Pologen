@@ -4,7 +4,7 @@
 
 - Add safe incremental entry and image generation backed by SHA-256 metadata.
 - Preserve malformed `meta.toml` files and report actionable errors.
-- Decode WebP article images and emit correctly named JPEG artifacts.
+- Preserve JPEG, PNG, and GIF source formats in resized full-size and thumbnail artifacts.
 - Verify that unchanged builds preserve article, image, OGP, and metadata artifacts.
 - Run responsive mobile and sticky TOC regressions in Chromium.
 - Load a complete custom jte template directory relative to `config.toml`.

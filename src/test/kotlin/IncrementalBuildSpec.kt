@@ -61,8 +61,8 @@ class IncrementalBuildSpec : FunSpec({
 
         val artifacts = listOf(
             entryDir.resolve("index.html"),
-            entryDir.resolve("sample-full.jpg"),
-            entryDir.resolve("sample-thumb.jpg"),
+            entryDir.resolve("sample-full.png"),
+            entryDir.resolve("sample-thumb.png"),
             entryDir.resolve("ogp.png"),
             entryDir.resolve("meta.toml"),
         )

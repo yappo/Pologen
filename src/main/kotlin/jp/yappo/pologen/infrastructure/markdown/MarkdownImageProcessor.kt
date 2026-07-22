@@ -21,7 +21,7 @@ class MarkdownImageProcessor {
         val replacements = mutableMapOf<String, String>()
         val images = mutableListOf<EntryImageMeta>()
         val configSha256 = sha256Hex(
-            "${config.thumbWidth}:${config.fullMaxWidth}:${config.scaleMethod}:${config.jpegQuality}"
+            "$IMAGE_OUTPUT_FORMAT_VERSION:${config.thumbWidth}:${config.fullMaxWidth}:${config.scaleMethod}:${config.jpegQuality}"
         )
         val updated = IMAGE_REGEX.replace(markdown) { matchResult ->
             val altText = matchResult.groupValues.getOrNull(1)?.trim().orEmpty()
@@ -38,8 +38,9 @@ class MarkdownImageProcessor {
 
             val originalName = sourcePath.fileName.toString()
             val baseName = originalName.substringBeforeLast(".", originalName)
-            val destFull = entryDir.resolve("$baseName-full.jpg")
-            val destThumb = entryDir.resolve("$baseName-thumb.jpg")
+            val extension = originalName.substringAfterLast('.', "jpg").ifBlank { "jpg" }
+            val destFull = entryDir.resolve("$baseName-full.$extension")
+            val destThumb = entryDir.resolve("$baseName-thumb.$extension")
             val sourcePathText = sourcePath.relativeTo(entryDir).toString().replace(File.separatorChar, '/')
             val sourceSha256 = sha256Hex(sourcePath)
             val previous = previousImages.firstOrNull {
@@ -97,6 +98,7 @@ class MarkdownImageProcessor {
     }
 
     private companion object {
+        const val IMAGE_OUTPUT_FORMAT_VERSION = 2
         val IMAGE_REGEX = Regex("""!\[([^\]]*)]\(([^)]+)\)""")
     }
 }
