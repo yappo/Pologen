@@ -38,6 +38,7 @@ data class SiteMeta(
     val scripts: List<String>,
     val author: AuthorMeta,
     val archiveUrl: String?,
+    val tagsUrl: String?,
 )
 
 data class EntryPageModel(
@@ -53,6 +54,8 @@ data class EntryPageModel(
     val recentEntries: List<RecentEntry>,
     val links: Map<String, String>,
     val rssUrl: String,
+    val tags: List<TagLinkModel>,
+    val relatedEntries: List<IndexEntrySummary>,
 )
 
 data class IndexEntrySummary(
@@ -97,6 +100,28 @@ data class ArchivePageModel(
     val months: List<ArchiveMonthModel>,
 )
 
+data class TagLinkModel(
+    val name: String,
+    val url: String,
+)
+
+data class TagSummaryModel(
+    val name: String,
+    val url: String,
+    val entryCount: Int,
+)
+
+data class TagIndexPageModel(
+    val site: SiteMeta,
+    val tags: List<TagSummaryModel>,
+)
+
+data class TagPageModel(
+    val site: SiteMeta,
+    val tag: String,
+    val entries: List<IndexEntrySummary>,
+)
+
 object Templates {
     private val DEFAULT_STYLESHEETS = listOf(
         "/assets/pologen.css",
@@ -109,7 +134,12 @@ object Templates {
     private val plainTemplateEngine: TemplateEngine by lazy { createEngine(ContentType.Plain) }
     private val customTemplateEngines = ConcurrentHashMap<TemplateEngineKey, TemplateEngine>()
 
-    fun renderEntry(conf: Configuration, entry: Entry, recentEntries: List<RecentEntry>): String {
+    fun renderEntry(
+        conf: Configuration,
+        entry: Entry,
+        recentEntries: List<RecentEntry>,
+        relatedEntries: List<Entry> = emptyList(),
+    ): String {
         val permalink = resolveDocumentUrl(conf.site.documentBaseUrl, entry.urlPath)
         val model = EntryPageModel(
             site = conf.toSiteMeta(),
@@ -124,6 +154,19 @@ object Templates {
             recentEntries = recentEntries,
             links = sanitizeLinks(conf.links),
             rssUrl = conf.site.feedXmlUrl,
+            tags = if (conf.tags.enabled) entry.tags.map { tag ->
+                TagLinkModel(tag, tagUrl(conf, tag))
+            } else {
+                emptyList()
+            },
+            relatedEntries = relatedEntries.map { related ->
+                IndexEntrySummary(
+                    title = related.title,
+                    href = resolveDocumentUrl(conf.site.documentBaseUrl, related.urlPath),
+                    publishDateLocal = related.publishDateLocal,
+                    summary = related.summary,
+                )
+            },
         )
         val output = StringOutput()
         templateEngine(conf, ContentType.Html).render("entry.kte", model, output)
@@ -210,6 +253,37 @@ object Templates {
         return output.toString()
     }
 
+    fun renderTagIndex(conf: Configuration, entriesByTag: Map<String, List<Entry>>): String {
+        val tags = entriesByTag.entries
+            .sortedBy { it.key.lowercase(Locale.ROOT) }
+            .map { (tag, entries) -> TagSummaryModel(tag, tagUrl(conf, tag), entries.size) }
+        val output = StringOutput()
+        templateEngine(conf, ContentType.Html).render(
+            "tags.kte",
+            TagIndexPageModel(site = conf.toSiteMeta(), tags = tags),
+            output,
+        )
+        return output.toString()
+    }
+
+    fun renderTag(conf: Configuration, tag: String, entries: List<Entry>): String {
+        val viewEntries = entries.map { entry ->
+            IndexEntrySummary(
+                title = entry.title,
+                href = resolveDocumentUrl(conf.site.documentBaseUrl, entry.urlPath),
+                publishDateLocal = entry.publishDateLocal,
+                summary = entry.summary,
+            )
+        }
+        val output = StringOutput()
+        templateEngine(conf, ContentType.Html).render(
+            "tag.kte",
+            TagPageModel(site = conf.toSiteMeta(), tag = tag, entries = viewEntries),
+            output,
+        )
+        return output.toString()
+    }
+
     private fun Configuration.toSiteMeta(): SiteMeta {
         val resolvedStyles = (DEFAULT_STYLESHEETS + assets.stylesheets).distinct()
         val resolvedScripts = (DEFAULT_SCRIPTS + assets.scripts).distinct()
@@ -228,6 +302,7 @@ object Templates {
                 iconUrl = author.iconUrl,
             ),
             archiveUrl = if (archive.enabled) resolveDocumentUrl(site.documentBaseUrl, archive.url) else null,
+            tagsUrl = if (tags.enabled) resolveDocumentUrl(site.documentBaseUrl, tags.url) else null,
         )
     }
 
@@ -271,6 +346,16 @@ object Templates {
     private val ENTRY_DATE_FORMAT = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH)
     private val ARCHIVE_MONTH_FORMAT = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH)
 }
+
+fun tagSlug(tag: String): String {
+    val encoded = URLEncoder.encode(tag, StandardCharsets.UTF_8).replace("+", "%20")
+    return if (encoded == "." || encoded == "..") encoded.replace(".", "%2E") else encoded
+}
+
+fun tagUrl(conf: Configuration, tag: String): String = resolveDocumentUrl(
+    conf.site.documentBaseUrl,
+    "${conf.tags.url.trimEnd('/')}/${tagSlug(tag)}/",
+)
 
 private data class TemplateEngineKey(
     val directory: Path,

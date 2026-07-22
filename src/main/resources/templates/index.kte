@@ -23,6 +23,9 @@
                 ${model.site.title}
             </a>
             <div class="flex items-center justify-center sm:justify-end gap-4 text-sm">
+                @if (model.site.tagsUrl != null)
+                    <a href="${model.site.tagsUrl}" class="text-slate-300 hover:text-white transition">Tags</a>
+                @endif
                 @if (model.site.archiveUrl != null)
                     <a href="${model.site.archiveUrl}" class="text-slate-300 hover:text-white transition">Archive</a>
                 @endif

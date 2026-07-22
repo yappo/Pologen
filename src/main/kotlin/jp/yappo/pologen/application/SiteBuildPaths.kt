@@ -10,6 +10,7 @@ data class SiteBuildPaths(
     val indexHtml: Path,
     val feedXml: Path,
     val archiveHtml: Path?,
+    val tagOutputRoot: Path?,
 ) {
     companion object {
         fun resolve(configPath: Path, configuration: Configuration): SiteBuildPaths {
@@ -25,6 +26,14 @@ data class SiteBuildPaths(
                     configBaseDir.resolve(configuration.paths.documentRoot)
                         .normalize()
                         .resolve(configuration.archive.output)
+                        .normalize()
+                } else {
+                    null
+                },
+                tagOutputRoot = if (configuration.tags.enabled) {
+                    configBaseDir.resolve(configuration.paths.documentRoot)
+                        .normalize()
+                        .resolve(configuration.tags.output)
                         .normalize()
                 } else {
                     null

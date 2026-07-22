@@ -31,6 +31,9 @@ class BuildSiteUseCase(
         paths.archiveHtml?.let { archiveHtmlPath ->
             siteWriter.renderArchive(configuration, archiveHtmlPath, entries)
         }
+        paths.tagOutputRoot?.let { tagOutputRoot ->
+            siteWriter.renderTags(configuration, tagOutputRoot, entries)
+        }
         return true
     }
 }

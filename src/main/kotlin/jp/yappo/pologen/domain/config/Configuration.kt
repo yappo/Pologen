@@ -22,6 +22,7 @@ data class Configuration(
     val sidebar: SidebarConfig = SidebarConfig(),
     val templates: TemplatesConfig = TemplatesConfig(),
     val archive: ArchiveConfig = ArchiveConfig(),
+    val tags: TagsConfig = TagsConfig(),
     val links: Map<String, String> = emptyMap(),
 )
 
@@ -96,6 +97,14 @@ data class ArchiveConfig(
 )
 
 @Serializable
+data class TagsConfig(
+    val enabled: Boolean = false,
+    val output: String = "tags",
+    val url: String = "/tags/",
+    val relatedEntryCount: Int = 3,
+)
+
+@Serializable
 data class EntryMeta(
     val publishDate: String,
     val updateDate: String,
@@ -109,6 +118,7 @@ data class EntryMeta(
     val navigationSha256: String? = null,
     val generatorVersion: Int? = null,
     val images: List<EntryImageMeta> = emptyList(),
+    val tags: List<String> = emptyList(),
 )
 
 @Serializable

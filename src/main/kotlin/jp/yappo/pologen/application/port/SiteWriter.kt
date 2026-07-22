@@ -14,4 +14,6 @@ interface SiteWriter {
     fun renderFeed(configuration: Configuration, feedXmlPath: Path, entries: List<Entry>)
 
     fun renderArchive(configuration: Configuration, archiveHtmlPath: Path, entries: List<Entry>)
+
+    fun renderTags(configuration: Configuration, tagOutputRoot: Path, entries: List<Entry>)
 }

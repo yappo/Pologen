@@ -61,6 +61,26 @@ class CustomTemplateSpec : FunSpec({
         error.message shouldContain templateDir.resolve("archive.kte").toString()
     }
 
+    test("tag templates are required only when tag generation is enabled") {
+        val root = createTempDirectory("pologen-custom-tag-template-")
+        val templateDir = root.resolve("templates").also { it.createDirectories() }
+        writeCustomTemplates(templateDir, "CUSTOM")
+        val configPath = root.resolve("config.toml")
+        configPath.writeText(
+            configurationToml() + "\n\n" +
+                """
+                [tags]
+                enabled = true
+                """.trimIndent()
+        )
+
+        val error = shouldThrow<IllegalArgumentException> {
+            ConfigurationLoader().load(configPath)
+        }
+
+        error.message shouldContain templateDir.resolve("tags.kte").toString()
+    }
+
     test("custom templates render all outputs and changes invalidate cached entries") {
         val root = createTempDirectory("pologen-custom-template-render-")
         val entryDir = root.resolve("post").also { it.createDirectories() }

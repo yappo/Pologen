@@ -16,6 +16,7 @@ data class Entry(
     val ogpDescription: String? = null,
     val toc: List<TocEntry> = emptyList(),
     val needsRender: Boolean = true,
+    val tags: List<String> = emptyList(),
 ) {
     val summary: String by lazy {
         if (body.length > 140) {

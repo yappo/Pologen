@@ -60,6 +60,21 @@ internal fun validateConfiguration(configuration: Configuration) {
             "archive.url must start with /"
         }
     }
+    if (configuration.tags.enabled) {
+        val tagsOutput = Path.of(configuration.tags.output)
+        require(configuration.tags.output.isNotBlank() && !tagsOutput.isAbsolute) {
+            "tags.output must be a non-blank relative path"
+        }
+        require(!tagsOutput.normalize().startsWith("..")) {
+            "tags.output must stay inside paths.documentRoot"
+        }
+        require(configuration.tags.url.startsWith("/")) {
+            "tags.url must start with /"
+        }
+        require(configuration.tags.relatedEntryCount >= 0) {
+            "tags.relatedEntryCount must not be negative"
+        }
+    }
     val documentBaseUri = runCatching { URI(configuration.site.documentBaseUrl) }.getOrNull()
     require(
         documentBaseUri?.isAbsolute == true &&
@@ -76,7 +91,9 @@ private fun validateTemplateDirectory(configuration: Configuration) {
     require(Files.isDirectory(directory)) {
         "templates.directory does not exist or is not a directory: $directory"
     }
-    val requiredTemplates = REQUIRED_TEMPLATES + if (configuration.archive.enabled) listOf("archive.kte") else emptyList()
+    val requiredTemplates = REQUIRED_TEMPLATES +
+        (if (configuration.archive.enabled) listOf("archive.kte") else emptyList()) +
+        (if (configuration.tags.enabled) listOf("tags.kte", "tag.kte") else emptyList())
     requiredTemplates.forEach { templateName ->
         require(Files.isRegularFile(directory.resolve(templateName))) {
             "Custom template is missing: ${directory.resolve(templateName)}"

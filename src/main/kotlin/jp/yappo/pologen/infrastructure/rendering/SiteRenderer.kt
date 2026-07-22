@@ -24,7 +24,8 @@ class SiteRenderer : SiteWriter {
     override fun renderEntries(configuration: Configuration, entries: List<Entry>) {
         entries.filter { it.needsRender }.forEach { entry ->
             val recentEntries = buildRecentEntries(configuration, entries, entry.urlPath)
-            val content = Templates.renderEntry(configuration, entry, recentEntries)
+            val relatedEntries = buildRelatedEntries(configuration, entries, entry)
+            val content = Templates.renderEntry(configuration, entry, recentEntries, relatedEntries)
             writeFile(entry.filePath.parent.resolve("index.html"), content)
         }
         val renderedCount = entries.count { it.needsRender }
@@ -47,6 +48,20 @@ class SiteRenderer : SiteWriter {
         writeFile(archiveHtmlPath, content)
     }
 
+    override fun renderTags(configuration: Configuration, tagOutputRoot: Path, entries: List<Entry>) {
+        val entriesByTag = linkedMapOf<String, MutableList<Entry>>()
+        entries.forEach { entry ->
+            entry.tags.forEach { tag -> entriesByTag.getOrPut(tag) { mutableListOf() }.add(entry) }
+        }
+        writeFile(tagOutputRoot.resolve("index.html"), Templates.renderTagIndex(configuration, entriesByTag))
+        entriesByTag.forEach { (tag, taggedEntries) ->
+            writeFile(
+                tagOutputRoot.resolve(tagSlug(tag)).resolve("index.html"),
+                Templates.renderTag(configuration, tag, taggedEntries),
+            )
+        }
+    }
+
     private fun buildRecentEntries(conf: Configuration, entries: List<Entry>, currentUrlPath: String?): List<RecentEntry> {
         return entries.take(conf.sidebar.recentEntryCount).map {
             val href = resolveDocumentUrl(conf.site.documentBaseUrl, it.urlPath)
@@ -57,6 +72,22 @@ class SiteRenderer : SiteWriter {
                 isCurrent = currentUrlPath != null && currentUrlPath == it.urlPath,
             )
         }
+    }
+
+    private fun buildRelatedEntries(conf: Configuration, entries: List<Entry>, current: Entry): List<Entry> {
+        if (!conf.tags.enabled || current.tags.isEmpty() || conf.tags.relatedEntryCount == 0) {
+            return emptyList()
+        }
+        val currentTags = current.tags.toSet()
+        return entries.withIndex()
+            .filter { (_, candidate) -> candidate.urlPath != current.urlPath && candidate.tags.any(currentTags::contains) }
+            .sortedWith(
+                compareByDescending<IndexedValue<Entry>> { (_, candidate) ->
+                    candidate.tags.count(currentTags::contains)
+                }.thenBy { it.index }
+            )
+            .take(conf.tags.relatedEntryCount)
+            .map { it.value }
     }
 
     private fun writeFile(path: Path, content: String) {
