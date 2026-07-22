@@ -7,8 +7,8 @@ import gg.jte.resolve.ResourceCodeResolver
 import jp.yappo.pologen.domain.config.Configuration
 import jp.yappo.pologen.domain.model.Entry
 import jp.yappo.pologen.domain.model.TocEntry
+import jp.yappo.pologen.domain.support.resolveDocumentUrl
 import org.apache.commons.text.StringEscapeUtils
-import java.net.URI
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
@@ -70,10 +70,10 @@ data class FeedEntryModel(
 )
 
 data class FeedPageModel(
-    val site: SiteMeta,
+    val languageEscaped: String,
     val channelLink: String,
     val channelFeedUrl: String,
-    val lastPublishDate: String,
+    val lastPublishDate: String?,
     val entries: List<FeedEntryModel>,
     val siteTitleEscaped: String,
     val siteDescriptionEscaped: String,
@@ -81,10 +81,9 @@ data class FeedPageModel(
 
 object Templates {
     private val DEFAULT_STYLESHEETS = listOf(
-        "https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css"
+        "/assets/pologen.css",
     )
     private val DEFAULT_SCRIPTS = listOf(
-        "https://cdn.tailwindcss.com",
         "/assets/pologen.js",
     )
 
@@ -92,7 +91,7 @@ object Templates {
     private val plainTemplateEngine: TemplateEngine by lazy { createEngine(ContentType.Plain) }
 
     fun renderEntry(conf: Configuration, entry: Entry, recentEntries: List<RecentEntry>): String {
-        val permalink = URI(conf.site.documentBaseUrl + entry.urlPath).normalize().toString()
+        val permalink = resolveDocumentUrl(conf.site.documentBaseUrl, entry.urlPath)
         val model = EntryPageModel(
             site = conf.toSiteMeta(),
             title = entry.title,
@@ -114,7 +113,7 @@ object Templates {
 
     fun renderIndex(conf: Configuration, entries: List<Entry>, recentEntries: List<RecentEntry>): String {
         val viewEntries = entries.map { entry ->
-            val href = URI(conf.site.documentBaseUrl + entry.urlPath).normalize().toString()
+            val href = resolveDocumentUrl(conf.site.documentBaseUrl, entry.urlPath)
             IndexEntrySummary(
                 title = entry.title,
                 href = href,
@@ -136,20 +135,20 @@ object Templates {
 
     fun renderFeed(conf: Configuration, entries: List<Entry>): String {
         val feedEntries = entries.map { entry ->
-            val href = URI(conf.site.documentBaseUrl + entry.urlPath).normalize().toString()
+            val href = resolveDocumentUrl(conf.site.documentBaseUrl, entry.urlPath)
             val safeTitle = StringEscapeUtils.escapeXml10(entry.title)
             FeedEntryModel(
                 title = safeTitle,
-                link = href,
+                link = StringEscapeUtils.escapeXml10(href),
                 publishDate = entry.publishDate,
                 summary = StringEscapeUtils.escapeXml10(entry.summary),
             )
         }
         val model = FeedPageModel(
-            site = conf.toSiteMeta(),
-            channelLink = conf.site.blogTopUrl,
-            channelFeedUrl = conf.site.feedXmlUrl,
-            lastPublishDate = entries.firstOrNull()?.publishDate ?: "",
+            languageEscaped = StringEscapeUtils.escapeXml10(conf.site.language),
+            channelLink = StringEscapeUtils.escapeXml10(conf.site.blogTopUrl),
+            channelFeedUrl = StringEscapeUtils.escapeXml10(conf.site.feedXmlUrl),
+            lastPublishDate = entries.firstOrNull()?.publishDate,
             entries = feedEntries,
             siteTitleEscaped = StringEscapeUtils.escapeXml10(conf.site.title),
             siteDescriptionEscaped = StringEscapeUtils.escapeXml10(conf.site.description),
@@ -160,8 +159,8 @@ object Templates {
     }
 
     private fun Configuration.toSiteMeta(): SiteMeta {
-        val resolvedStyles = if (assets.stylesheets.isNotEmpty()) assets.stylesheets else DEFAULT_STYLESHEETS
-        val resolvedScripts = if (assets.scripts.isNotEmpty()) assets.scripts else DEFAULT_SCRIPTS
+        val resolvedStyles = (DEFAULT_STYLESHEETS + assets.stylesheets).distinct()
+        val resolvedScripts = (DEFAULT_SCRIPTS + assets.scripts).distinct()
         return SiteMeta(
             title = site.title,
             description = site.description,

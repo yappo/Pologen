@@ -1,7 +1,7 @@
 @import jp.yappo.pologen.infrastructure.rendering.EntryPageModel
 @param model:EntryPageModel
 <!DOCTYPE html>
-<html lang="en">
+<html lang="${model.site.language}">
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
@@ -80,7 +80,7 @@
                     </div>
                 </div>
                 @if (model.toc.isNotEmpty())
-                    <div class="card bg-slate-900/60 border border-slate-800">
+                    <div class="card bg-slate-900/60 border border-slate-800 lg:sticky lg:top-4">
                         <div class="card-body">
                             <h3 class="card-title text-white text-base">Table of contents</h3>
                             <ul class="menu bg-transparent text-sm text-slate-300">

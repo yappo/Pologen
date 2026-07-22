@@ -1,6 +1,7 @@
 package jp.yappo.pologen.domain.support
 
 import org.apache.commons.text.StringEscapeUtils
+import org.jsoup.Jsoup
 
 fun sanitizeForOgp(text: String, limit: Int = 100): String {
     val normalized = StringEscapeUtils.unescapeHtml4(text)
@@ -20,4 +21,4 @@ fun sanitizeForOgp(text: String, limit: Int = 100): String {
 
 fun truncateSummary(text: String, limit: Int = 100): String = sanitizeForOgp(text, limit)
 
-fun stripHtml(html: String): String = html.replace(Regex("<[^>]*>"), "").trim()
+fun stripHtml(html: String): String = Jsoup.parseBodyFragment(html).text().trim()

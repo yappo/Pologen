@@ -9,6 +9,7 @@ import jp.yappo.pologen.infrastructure.markdown.OgpImageService
 import java.nio.file.Path
 import kotlin.io.path.createTempDirectory
 import kotlin.io.path.writeText
+import java.nio.file.Files
 
 class OgpImageServiceSpec : FunSpec({
     test("prepare regenerates an existing OGP image when entry metadata changed") {
@@ -16,8 +17,9 @@ class OgpImageServiceSpec : FunSpec({
         entryDir.resolve("ogp.png").writeText("existing")
         val entryFile = entryDir.resolve("index.md")
         var generateCount = 0
-        val service = OgpImageService { _, _, _, _, _ ->
+        val service = OgpImageService { _, _, _, _, output ->
             generateCount++
+            Files.writeString(output, "generated")
         }
 
         service.prepare(
@@ -53,6 +55,24 @@ class OgpImageServiceSpec : FunSpec({
         )
 
         generateCount shouldBe 0
+    }
+
+    test("prepare omits image metadata when OGP generation fails") {
+        val entryDir = createTempDirectory("pologen-ogp-service-")
+        entryDir.resolve("ogp.png").writeText("stale")
+        val service = OgpImageService { _, _, _, _, _ -> error("generator failed") }
+
+        val result = service.prepare(
+            configuration = sampleConfiguration().copy(ogp = OgpConfig(enabled = true)),
+            metaState = EntryMetaState(sampleMeta(), entryChanged = true),
+            body = "Body",
+            title = "Title",
+            entryFile = entryDir.resolve("index.md"),
+            urlPath = "/post/",
+            configBaseDir = Path.of("/tmp/pologen"),
+        )
+
+        result.imageUrl shouldBe null
     }
 })
 

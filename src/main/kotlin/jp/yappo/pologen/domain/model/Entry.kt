@@ -15,6 +15,7 @@ data class Entry(
     val ogpImageUrl: String? = null,
     val ogpDescription: String? = null,
     val toc: List<TocEntry> = emptyList(),
+    val needsRender: Boolean = true,
 ) {
     val summary: String by lazy {
         if (body.length > 140) {

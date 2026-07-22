@@ -2,7 +2,12 @@ package jp.yappo.pologen
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.assertions.throwables.shouldThrow
+import jp.yappo.pologen.domain.config.ImagesConfig
+import jp.yappo.pologen.domain.config.OgpConfig
+import jp.yappo.pologen.domain.config.SidebarConfig
 import jp.yappo.pologen.infrastructure.config.ConfigurationLoader
+import jp.yappo.pologen.infrastructure.config.validateConfiguration
 import jp.yappo.pologen.infrastructure.rendering.sanitizeLinks
 import java.nio.file.Path
 import kotlin.io.path.createTempDirectory
@@ -109,5 +114,22 @@ class ConfigSpec : FunSpec({
         val sanitized = sanitizeLinks(conf.links)
         sanitized.keys.toList() shouldBe listOf("'a'", "b b")
         sanitized.values.toList() shouldBe listOf("https://a.example.com", "https://b.example.com")
+    }
+
+    test("configuration validation rejects unsafe numeric values and base URLs") {
+        shouldThrow<IllegalArgumentException> {
+            validateConfiguration(sampleConfiguration().copy(images = ImagesConfig(thumbWidth = 0)))
+        }
+        shouldThrow<IllegalArgumentException> {
+            validateConfiguration(sampleConfiguration().copy(sidebar = SidebarConfig(recentEntryCount = -1)))
+        }
+        shouldThrow<IllegalArgumentException> {
+            validateConfiguration(sampleConfiguration().copy(ogp = OgpConfig(enabled = true, width = 0)))
+        }
+        shouldThrow<IllegalArgumentException> {
+            validateConfiguration(
+                sampleConfiguration().copy(site = sampleConfiguration().site.copy(documentBaseUrl = "/relative"))
+            )
+        }
     }
 })

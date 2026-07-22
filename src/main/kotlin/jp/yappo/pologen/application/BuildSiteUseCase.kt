@@ -15,12 +15,12 @@ class BuildSiteUseCase(
     private val siteWriter: SiteWriter = SiteRenderer(),
 ) {
 
-    fun execute(configPath: Path) {
+    fun execute(configPath: Path): Boolean {
         val configuration = configurationReader.load(configPath)
         val paths = SiteBuildPaths.resolve(configPath, configuration)
         if (!Files.exists(paths.documentRoot) || !Files.isDirectory(paths.documentRoot)) {
             println("Invalid docs directory: ${paths.documentRoot}")
-            return
+            return false
         }
         val entries = entrySource.collectEntries(configuration, paths.documentRoot, paths.configBaseDir)
         siteWriter.copyAssets(paths.documentRoot)
@@ -28,5 +28,6 @@ class BuildSiteUseCase(
         val indexEntries = entries.take(30)
         siteWriter.renderIndex(configuration, paths.indexHtml, indexEntries)
         siteWriter.renderFeed(configuration, paths.feedXml, indexEntries)
+        return true
     }
 }

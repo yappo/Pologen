@@ -5,35 +5,32 @@ import jp.yappo.pologen.domain.support.sha256Hex
 import org.intellij.markdown.flavours.commonmark.CommonMarkFlavourDescriptor
 import org.intellij.markdown.html.HtmlGenerator
 import org.intellij.markdown.parser.MarkdownParser
+import org.jsoup.Jsoup
 
 class MarkdownRenderer {
     private val flavour = CommonMarkFlavourDescriptor()
 
     fun render(markdown: String): RenderedMarkdown {
-        val toc = extractToc(markdown)
         val parsedTree = MarkdownParser(flavour).buildMarkdownTreeFromString(markdown)
         val html = parsedTree.children.joinToString(separator = "") {
             HtmlGenerator(markdown, it, flavour).generateHtml()
         }
+        val document = Jsoup.parseBodyFragment(html)
+        document.outputSettings().prettyPrint(false)
+        val usedSlugs = mutableMapOf<String, Int>()
+        val toc = document.select("h2, h3").map { heading ->
+            val text = heading.text().trim()
+            val baseSlug = slugify(text)
+            val occurrence = usedSlugs.getOrDefault(baseSlug, 0) + 1
+            usedSlugs[baseSlug] = occurrence
+            val id = if (occurrence == 1) baseSlug else "$baseSlug-$occurrence"
+            heading.attr("id", id)
+            TocEntry(heading.tagName().removePrefix("h").toInt(), text, id)
+        }
         return RenderedMarkdown(
-            html = injectHeadingIds(html, toc),
+            html = document.body().html(),
             toc = toc,
         )
-    }
-
-    private fun extractToc(markdown: String): List<TocEntry> = buildList {
-        markdown.lines().forEach { line ->
-            val trimmed = line.trimStart()
-            val level = when {
-                trimmed.startsWith("### ") -> 3
-                trimmed.startsWith("## ") -> 2
-                else -> null
-            }
-            if (level != null) {
-                val text = trimmed.removePrefix("#".repeat(level)).trim()
-                add(TocEntry(level, text, slugify(text)))
-            }
-        }
     }
 
     private fun slugify(text: String): String {
@@ -46,14 +43,6 @@ class MarkdownRenderer {
             return cleaned
         }
         return "heading-${sha256Hex(normalized).take(16)}"
-    }
-
-    private fun injectHeadingIds(html: String, toc: List<TocEntry>): String {
-        var result = html
-        toc.forEach { item ->
-            result = result.replaceFirst("<h${item.level}>", """<h${item.level} id="${item.id}">""")
-        }
-        return result
     }
 }
 

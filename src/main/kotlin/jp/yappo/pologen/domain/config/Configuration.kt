@@ -2,6 +2,7 @@ package jp.yappo.pologen.domain.config
 
 import jp.yappo.pologen.domain.model.TocEntry
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
@@ -88,6 +89,21 @@ data class EntryMeta(
     val title: String? = null,
     val summary: String? = null,
     val toc: List<TocEntry> = emptyList(),
+    val indexSummary: String? = null,
+    val sourceSha256: String? = null,
+    val renderConfigSha256: String? = null,
+    val navigationSha256: String? = null,
+    val generatorVersion: Int? = null,
+    val images: List<EntryImageMeta> = emptyList(),
+)
+
+@Serializable
+data class EntryImageMeta(
+    val sourcePath: String,
+    val sourceSha256: String,
+    val fullPath: String,
+    val thumbPath: String,
+    val configSha256: String,
 )
 
 object ScalrMethodSerializer : KSerializer<Scalr.Method> {
@@ -100,7 +116,9 @@ object ScalrMethodSerializer : KSerializer<Scalr.Method> {
             "ultra_quality" -> Scalr.Method.ULTRA_QUALITY
             "automatic" -> Scalr.Method.AUTOMATIC
             "quality" -> Scalr.Method.QUALITY
-            else -> Scalr.Method.QUALITY
+            else -> throw SerializationException(
+                "Invalid images.scaleMethod. Expected speed, balanced, quality, ultra_quality, or automatic."
+            )
         }
     }
 

@@ -2,8 +2,13 @@ package jp.yappo.pologen.infrastructure.markdown
 
 import jp.yappo.pologen.application.port.EntrySource
 import jp.yappo.pologen.domain.config.Configuration
+import jp.yappo.pologen.domain.config.EntryImageMeta
+import jp.yappo.pologen.domain.config.EntryMeta
 import jp.yappo.pologen.domain.model.Entry
 import jp.yappo.pologen.domain.support.convertToRssDateTimeFormat
+import jp.yappo.pologen.domain.support.currentDateTimeInJST
+import jp.yappo.pologen.domain.support.resolveDocumentUrl
+import jp.yappo.pologen.domain.support.sha256Hex
 import jp.yappo.pologen.domain.support.stripHtml
 import jp.yappo.pologen.domain.support.truncateSummary
 import java.io.File
@@ -11,6 +16,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.time.ZoneId
 import java.util.Comparator
+import kotlin.io.path.isRegularFile
 
 class MarkdownService(
     private val imageProcessor: MarkdownImageProcessor = MarkdownImageProcessor(),
@@ -23,67 +29,205 @@ class MarkdownService(
     }
 
     fun collectEntries(conf: Configuration, rootDirPath: Path, dirPath: Path, configBaseDir: Path): List<Entry> {
-        return buildList {
-            val indexMdFile = dirPath.resolve("index.md")
-            if (Files.exists(indexMdFile)) {
-                add(loadMarkdown(conf, rootDirPath, indexMdFile, configBaseDir))
-            }
-
-            Files.list(dirPath).use { children ->
-                children
-                    .sorted(Comparator.reverseOrder())
-                    .filter { Files.isDirectory(it) }
-                    .forEach { child ->
-                        addAll(collectEntries(conf, rootDirPath, child, configBaseDir))
-                    }
+        val newEntryPublishDate = currentDateTimeInJST()
+        val drafts = discoverMarkdownFiles(dirPath).map { filePath ->
+            createDraft(rootDirPath, filePath, newEntryPublishDate)
+        }
+        val renderConfigSha256 = sha256Hex(
+            "$ENTRY_CACHE_VERSION|${templateFingerprint()}|${configBaseDir.toAbsolutePath().normalize()}|$conf"
+        )
+        val navigationSha256 = sha256Hex(
+            drafts.joinToString("\n") { "${it.urlPath}|${it.title}|${it.publishDate}" }
+        )
+        return drafts.map { draft ->
+            if (canReuse(draft, conf, renderConfigSha256, navigationSha256)) {
+                reuseEntry(draft, conf)
+            } else {
+                loadMarkdown(conf, draft, configBaseDir, renderConfigSha256, navigationSha256)
             }
         }
     }
 
-    private fun loadMarkdown(conf: Configuration, rootDirPath: Path, filePath: Path, configBaseDir: Path): Entry {
+    private fun discoverMarkdownFiles(dirPath: Path): List<Path> = buildList {
+        val indexMdFile = dirPath.resolve("index.md")
+        if (indexMdFile.isRegularFile()) {
+            add(indexMdFile)
+        }
+        Files.list(dirPath).use { children ->
+            children
+                .sorted(Comparator.reverseOrder())
+                .filter(Files::isDirectory)
+                .forEach { child -> addAll(discoverMarkdownFiles(child)) }
+        }
+    }
+
+    private fun createDraft(rootDirPath: Path, filePath: Path, newEntryPublishDate: String): EntryDraft {
         val lines = Files.readAllLines(filePath)
-        val titleLine = lines.firstOrNull().orEmpty()
-
-        val title = titleLine.removePrefix("title: ").trim().ifBlank { "Untitled" }
+        val titleLine = lines.firstOrNull()
+        require(titleLine?.startsWith("title: ") == true && titleLine.removePrefix("title: ").isNotBlank()) {
+            "The first line of $filePath must use the format: title: Your Title"
+        }
+        val title = titleLine.removePrefix("title: ").trim()
         val markdown = lines.drop(1).joinToString("\n").trim()
-
         val relativePath = rootDirPath.relativize(filePath.parent).toString().replace(File.separatorChar, '/')
         val urlPath = "/${if (relativePath.isBlank()) "" else "$relativePath/"}"
+        val metaFilePath = filePath.parent.resolve("meta.toml")
+        val existingMeta = metaStore.read(metaFilePath)
+        return EntryDraft(
+            filePath = filePath,
+            metaFilePath = metaFilePath,
+            title = title,
+            markdown = markdown,
+            urlPath = urlPath,
+            sourceSha256 = sha256Hex(filePath),
+            existingMeta = existingMeta,
+            publishDate = existingMeta?.publishDate ?: newEntryPublishDate,
+        )
+    }
 
-        val processedMarkdown = imageProcessor.process(markdown, filePath.parent, conf.images)
-        val markdownWithImages = processedMarkdown.markdown
-        val renderedMarkdown = markdownRenderer.render(markdownWithImages)
+    private fun canReuse(
+        draft: EntryDraft,
+        conf: Configuration,
+        renderConfigSha256: String,
+        navigationSha256: String,
+    ): Boolean {
+        val meta = draft.existingMeta ?: return false
+        if (meta.generatorVersion != ENTRY_CACHE_VERSION ||
+            meta.sourceSha256 != draft.sourceSha256 ||
+            meta.renderConfigSha256 != renderConfigSha256 ||
+            meta.navigationSha256 != navigationSha256 ||
+            meta.title == null ||
+            meta.title != draft.title ||
+            meta.summary == null ||
+            meta.indexSummary == null ||
+            !draft.filePath.parent.resolve("index.html").isRegularFile()
+        ) {
+            return false
+        }
+        if (conf.ogp.enabled && !draft.filePath.parent.resolve("ogp.png").isRegularFile()) {
+            return false
+        }
+        if (draft.markdown.contains("![") && meta.images.isEmpty()) {
+            return false
+        }
+        return meta.images.all { imageCacheIsValid(draft.filePath.parent, it) }
+    }
+
+    private fun imageCacheIsValid(entryDir: Path, image: EntryImageMeta): Boolean {
+        val source = entryDir.resolve(image.sourcePath).normalize()
+        return source.isRegularFile() &&
+            sha256Hex(source) == image.sourceSha256 &&
+            entryDir.resolve(image.fullPath).isRegularFile() &&
+            entryDir.resolve(image.thumbPath).isRegularFile()
+    }
+
+    private fun reuseEntry(draft: EntryDraft, conf: Configuration): Entry {
+        val meta = requireNotNull(draft.existingMeta)
+        val ogpPath = draft.filePath.parent.resolve("ogp.png")
+        return Entry(
+            filePath = draft.filePath,
+            urlPath = draft.urlPath,
+            title = requireNotNull(meta.title),
+            publishDate = rssDate(meta.publishDate, GMT),
+            publishDateLocal = rssDate(meta.publishDate, JST),
+            markdown = "",
+            html = "",
+            body = requireNotNull(meta.indexSummary),
+            ogpImageUrl = if (conf.ogp.enabled && ogpPath.isRegularFile()) {
+                resolveDocumentUrl(conf.site.documentBaseUrl, "${draft.urlPath}ogp.png")
+            } else {
+                null
+            },
+            ogpDescription = if (conf.ogp.enabled) meta.summary else null,
+            toc = meta.toc,
+            needsRender = false,
+        )
+    }
+
+    private fun loadMarkdown(
+        conf: Configuration,
+        draft: EntryDraft,
+        configBaseDir: Path,
+        renderConfigSha256: String,
+        navigationSha256: String,
+    ): Entry {
+        val processedMarkdown = imageProcessor.process(
+            draft.markdown,
+            draft.filePath.parent,
+            conf.images,
+            draft.existingMeta?.images.orEmpty(),
+        )
+        val renderedMarkdown = markdownRenderer.render(processedMarkdown.markdown)
         val html = processedMarkdown.replacements.entries.fold(renderedMarkdown.html) { acc, (placeholder, snippet) ->
             acc.replace(placeholder, snippet)
         }
         val body = stripHtml(html)
-
-        val localZoneId = ZoneId.of("Asia/Tokyo")
-        val gmtZoneId = ZoneId.of("GMT")
-
-        val metaFilePath = filePath.parent.resolve("meta.toml")
-        val metaSummary = truncateSummary(body)
+        val indexSummary = if (body.length > 140) body.take(140) + "..." else body
         val metaState = metaStore.synchronize(
-            metaFilePath = metaFilePath,
+            metaFilePath = draft.metaFilePath,
             body = body,
-            title = title,
-            summary = metaSummary,
+            title = draft.title,
+            summary = truncateSummary(body),
             toc = renderedMarkdown.toc,
+            indexSummary = indexSummary,
+            sourceSha256 = draft.sourceSha256,
+            renderConfigSha256 = renderConfigSha256,
+            navigationSha256 = navigationSha256,
+            images = processedMarkdown.images,
+            initialPublishDate = draft.publishDate,
+            existingMeta = draft.existingMeta,
         )
-        val ogpMetadata = ogpImageService.prepare(conf, metaState, body, title, filePath, urlPath, configBaseDir)
-
+        val ogpMetadata = ogpImageService.prepare(
+            conf,
+            metaState,
+            body,
+            draft.title,
+            draft.filePath,
+            draft.urlPath,
+            configBaseDir,
+        )
         return Entry(
-            filePath = filePath,
-            urlPath = urlPath,
-            title = title,
-            publishDate = convertToRssDateTimeFormat(metaState.meta.publishDate, localZoneId, gmtZoneId),
-            publishDateLocal = convertToRssDateTimeFormat(metaState.meta.publishDate, localZoneId, localZoneId),
-            markdown = markdownWithImages,
+            filePath = draft.filePath,
+            urlPath = draft.urlPath,
+            title = draft.title,
+            publishDate = rssDate(metaState.meta.publishDate, GMT),
+            publishDateLocal = rssDate(metaState.meta.publishDate, JST),
+            markdown = processedMarkdown.markdown,
             html = html,
             body = body,
             ogpImageUrl = ogpMetadata.imageUrl,
             ogpDescription = ogpMetadata.description,
             toc = renderedMarkdown.toc,
         )
+    }
+
+    private fun rssDate(value: String, zoneId: ZoneId): String = convertToRssDateTimeFormat(value, JST, zoneId)
+
+    private fun templateFingerprint(): String {
+        val classLoader = MarkdownService::class.java.classLoader
+        val fingerprints = TEMPLATE_RESOURCES.map { resourcePath ->
+            val bytes = requireNotNull(classLoader.getResourceAsStream(resourcePath)) {
+                "Bundled template is missing: $resourcePath"
+            }.use { it.readBytes() }
+            sha256Hex(bytes)
+        }
+        return sha256Hex(fingerprints.joinToString("|"))
+    }
+
+    private data class EntryDraft(
+        val filePath: Path,
+        val metaFilePath: Path,
+        val title: String,
+        val markdown: String,
+        val urlPath: String,
+        val sourceSha256: String,
+        val existingMeta: EntryMeta?,
+        val publishDate: String,
+    )
+
+    private companion object {
+        val JST: ZoneId = ZoneId.of("Asia/Tokyo")
+        val GMT: ZoneId = ZoneId.of("GMT")
+        val TEMPLATE_RESOURCES = listOf("templates/entry.kte", "templates/index.kte", "templates/feed.kte")
     }
 }
