@@ -53,9 +53,10 @@ private fun ensureRgb(image: BufferedImage): BufferedImage {
 }
 
 private fun writeImage(image: BufferedImage, dest: Path, quality: Float) {
-    when (dest.fileName.toString().substringAfterLast('.', "").lowercase()) {
-        "png" -> writePng(image, dest)
-        else -> writeJpeg(image, dest, quality)
+    val extension = dest.fileName.toString().substringAfterLast('.', "").lowercase()
+    when (extension) {
+        "jpg", "jpeg" -> writeJpeg(image, dest, quality)
+        else -> writeWithImageIo(image, dest, extension)
     }
 }
 
@@ -75,7 +76,13 @@ fun writeJpeg(image: BufferedImage, dest: Path, quality: Float) {
     }
 }
 
-private fun writePng(image: BufferedImage, dest: Path) {
+private fun writeWithImageIo(image: BufferedImage, dest: Path, format: String) {
+    val writer = ImageIO.getImageWritersBySuffix(format).asSequence().firstOrNull()
+        ?: error("Unsupported output image format: .$format")
     dest.parent?.let { Files.createDirectories(it) }
-    ImageIO.write(image, "png", dest.toFile())
+    ImageIO.createImageOutputStream(dest.toFile()).use { stream: ImageOutputStream ->
+        writer.output = stream
+        writer.write(null, IIOImage(image, null, null), writer.defaultWriteParam)
+        writer.dispose()
+    }
 }
