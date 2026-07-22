@@ -6,6 +6,8 @@ import jp.yappo.pologen.domain.config.OgpConfig
 import jp.yappo.pologen.domain.support.sanitizeForOgp
 import jp.yappo.pologen.infrastructure.ogp.OGPGenerator
 import java.nio.file.Path
+import java.awt.Color
+import javax.imageio.ImageIO
 import kotlin.io.path.createTempDirectory
 import kotlin.io.path.exists
 
@@ -26,5 +28,24 @@ class OgpSpec : FunSpec({
         val out = dir.resolve("ogp/test.png")
         OGPGenerator.generate(conf.ogp, "Site Title", "Entry Title", "Body", out)
         out.exists() shouldBe true
+    }
+
+    test("invalid OGP colors fall back to configured defaults") {
+        val dir = createTempDirectory("pologen-ogp-color-")
+        val out = dir.resolve("ogp.png")
+        val config = OgpConfig(
+            enabled = true,
+            backgroundColor = "invalid",
+            titleColor = "invalid",
+            bodyColor = "invalid",
+            accentColor = "invalid",
+        )
+
+        OGPGenerator.generate(config, "Site", "Entry", "Body", out)
+
+        val pixel = Color(ImageIO.read(out.toFile()).getRGB(0, 0), true)
+        pixel.red shouldBe 0x10
+        pixel.green shouldBe 0x18
+        pixel.blue shouldBe 0x27
     }
 })

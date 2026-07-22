@@ -7,8 +7,10 @@
         <link>${model.channelLink}</link>
         <atom:link href="${model.channelFeedUrl}" rel="self" type="application/rss+xml"/>
         <description>${model.siteDescriptionEscaped}</description>
-        <language>${model.site.language}</language>
-        <pubDate>${model.lastPublishDate}</pubDate>
+        <language>${model.languageEscaped}</language>
+        @if (model.lastPublishDate != null)
+            <pubDate>${model.lastPublishDate}</pubDate>
+        @endif
         @for (entry in model.entries)
             <item>
                 <title>${entry.title}</title>

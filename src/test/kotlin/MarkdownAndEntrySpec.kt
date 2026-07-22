@@ -3,6 +3,7 @@ package jp.yappo.pologen
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldContainAll
 import io.kotest.matchers.shouldBe
+import io.kotest.assertions.throwables.shouldThrow
 import jp.yappo.pologen.domain.support.convertToRssDateTimeFormat
 import jp.yappo.pologen.infrastructure.markdown.MarkdownService
 import java.nio.file.Files
@@ -88,5 +89,14 @@ class MarkdownAndEntrySpec : FunSpec({
         val list = service.collectEntries(sampleConfiguration(), root, root, root)
         list.size shouldBe 2
         list.map { it.urlPath } shouldContainAll listOf("/a/", "/b/")
+    }
+
+    test("entry requires an explicit title line") {
+        val root = createTempDirectory("pologen-title-")
+        root.resolve("index.md").writeText("# Missing title prefix\nBody")
+
+        shouldThrow<IllegalArgumentException> {
+            MarkdownService().collectEntries(sampleConfiguration(), root, root, root)
+        }
     }
 })

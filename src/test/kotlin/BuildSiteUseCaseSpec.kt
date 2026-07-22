@@ -36,11 +36,13 @@ class BuildSiteUseCaseSpec : FunSpec({
         val entrySource = RecordingEntrySource(listOf(entry))
         val siteWriter = RecordingSiteWriter()
 
-        BuildSiteUseCase(
+        val result = BuildSiteUseCase(
             configurationReader = ConfigurationReader { configuration },
             entrySource = entrySource,
             siteWriter = siteWriter,
         ).execute(configPath)
+
+        result shouldBe true
 
         entrySource.documentRoot shouldBe tempDir.resolve("htdocs")
         entrySource.configBaseDir shouldBe tempDir
@@ -60,12 +62,13 @@ class BuildSiteUseCaseSpec : FunSpec({
         val entrySource = RecordingEntrySource(emptyList())
         val siteWriter = RecordingSiteWriter()
 
-        BuildSiteUseCase(
+        val result = BuildSiteUseCase(
             configurationReader = ConfigurationReader { configuration },
             entrySource = entrySource,
             siteWriter = siteWriter,
         ).execute(tempDir.resolve("config.toml"))
 
+        result shouldBe false
         entrySource.wasCalled shouldBe false
         siteWriter.wasCalled shouldBe false
     }

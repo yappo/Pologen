@@ -5,14 +5,27 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import jp.yappo.pologen.domain.support.convertToRssDateTimeFormat
 import jp.yappo.pologen.domain.model.Entry
+import jp.yappo.pologen.domain.model.TocEntry
+import jp.yappo.pologen.domain.config.AssetsConfig
 import jp.yappo.pologen.infrastructure.rendering.SiteRenderer
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.ZoneId
 import kotlin.io.path.createTempDirectory
 import kotlin.io.path.readText
+import kotlin.io.path.exists
 
 class HtmlGenerationSpec : FunSpec({
+    test("copyAssets writes bundled production CSS and JavaScript") {
+        val tmp = createTempDirectory("pologen-assets-")
+
+        SiteRenderer().copyAssets(tmp)
+
+        tmp.resolve("assets/pologen.css").exists() shouldBe true
+        tmp.resolve("assets/pologen.js").exists() shouldBe true
+        tmp.resolve("assets/pologen.css").readText() shouldContain ".lg\\:sticky"
+    }
+
     test("createEntryHtml writes index.html with entry content") {
         val tmp: Path = createTempDirectory("pologen-entry-")
         val dir = tmp.resolve("entry"); Files.createDirectories(dir)
@@ -25,8 +38,15 @@ class HtmlGenerationSpec : FunSpec({
             markdown = "Hello <em>world</em>",
             html = "<p>Hello <em>world</em> and <a href=\"https://example.com/reference\">reference</a></p>",
             body = "Hello world",
+            toc = listOf(TocEntry(level = 2, text = "Section", id = "section")),
         )
-        val conf = sampleConfiguration()
+        val conf = sampleConfiguration().copy(
+            site = sampleConfiguration().site.copy(language = "ja"),
+            assets = AssetsConfig(
+                stylesheets = listOf("/assets/custom.css"),
+                scripts = listOf("/assets/custom.js"),
+            ),
+        )
 
         val renderer = SiteRenderer()
         renderer.renderEntries(conf, listOf(entry))
@@ -38,8 +58,12 @@ class HtmlGenerationSpec : FunSpec({
         written shouldContain "[&_a:focus-visible]:ring-2"
         written shouldContain "<a href=\"https://example.com/reference\">reference</a>"
         written shouldContain entry.title
-        written shouldContain "cdn.tailwindcss.com"
-        written shouldContain "daisyui"
+        written shouldContain "<html lang=\"ja\">"
+        written shouldContain "/assets/pologen.css"
+        written shouldContain "/assets/custom.css"
+        written shouldContain "/assets/pologen.js"
+        written shouldContain "/assets/custom.js"
+        written shouldContain "lg:sticky lg:top-4"
         written shouldContain "Share on X"
     }
 
@@ -47,7 +71,8 @@ class HtmlGenerationSpec : FunSpec({
         val tmp: Path = createTempDirectory("pologen-index-")
         val base = sampleConfiguration()
         val conf = base.copy(
-            paths = base.paths.copy(indexHtml = "out/index.html")
+            paths = base.paths.copy(indexHtml = "out/index.html"),
+            site = base.site.copy(language = "ja"),
         )
         val entry = Entry(
             filePath = tmp.resolve("dummy/index.md"),
@@ -69,6 +94,8 @@ class HtmlGenerationSpec : FunSpec({
         html shouldContain "PostTitle"
         html shouldContain ">Thu, 02 Jan 2025 03:04:05 JST<"
         html shouldContain "href=\"https://example.com/post/\""
-        html shouldContain "cdn.tailwindcss.com"
+        html shouldContain "<html lang=\"ja\">"
+        html shouldContain "name=\"viewport\""
+        html shouldContain "/assets/pologen.css"
     }
 })

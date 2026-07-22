@@ -9,5 +9,6 @@ class HtmlUtilSpec : FunSpec({
         stripHtml("<p>Hello <b>World</b></p>") shouldBe "Hello World"
         stripHtml("  <div> spaced </div>  ") shouldBe "spaced"
         stripHtml("") shouldBe ""
+        stripHtml("<p>A &amp; B</p>") shouldBe "A & B"
     }
 })

@@ -7,6 +7,7 @@ yap*POLOG*s contents *GEN*erator
 ```
 $ ./gradlew shadowJar
 $ java -jar ./build/libs/Pologen-1.0-SNAPSHOT-all.jar path/to/config.toml
+$ java -jar ./build/libs/Pologen-1.0-SNAPSHOT-all.jar --config path/to/config.toml
 ```
 
 ## Overview
@@ -67,28 +68,29 @@ recentEntryCount = 10
 - `paths.documentRoot` points to the directory containing your posts, while `paths.indexHtml` and `paths.feedXml` define where the generated top page and RSS feed should be written (all relative to the configuration file).
 - `site.blogTopUrl` and `site.documentBaseUrl` supply absolute links for the generated HTML; `site.feedXmlUrl`, `site.title`, `site.description`, `site.language`, and `site.faviconUrl` drive metadata injected into HTML and RSS.
 - `author.*` configures the author info displayed on entry pages (name, profile link, and avatar).
-- `assets.stylesheets` / `assets.scripts` let you append additional CSS/JS. They fall back to Tailwind + daisyUI + `/assets/pologen.js` when omitted.
-- `images.*` governs thumbnail/full-size resizing and JPEG quality; `scaleMethod` accepts `speed`, `balanced`, `quality`, or `ultra_quality`.
+- `assets.stylesheets` / `assets.scripts` append additional CSS/JS after the bundled `/assets/pologen.css` and `/assets/pologen.js` defaults.
+- `images.*` governs thumbnail/full-size resizing and JPEG quality; `scaleMethod` accepts `speed`, `balanced`, `quality`, `ultra_quality`, or `automatic`. Widths must be positive and `jpegQuality` must be between `0.0` and `1.0`.
 - `sidebar.recentEntryCount` controls how many items appear in the “Recent posts” card; the `[links]` table is an insertion-order map rendered as external links in the sidebar (quote keys like `"Community Portal"` if they contain spaces).
 - The `[ogp]` table enables/disables image generation and configures the canvas, colors, and optional font/author icon assets. If `enabled = false`, OGP rendering and meta tags are skipped entirely.
 
 ## Styling Defaults
-The bundled templates include Tailwind CSS (via the CDN script `https://cdn.tailwindcss.com`) and daisyUI’s ready-made theme CSS (`https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css`) by default, plus the helper script at `/assets/pologen.js` (image overlay + TOC interactions). The markup sticks to standard Tailwind utility classes so you can swap in Flowbite, Bootstrap, or another framework in the future without rewriting the DOM structure. Upcoming releases will let you point the generator at your own `.kte` templates to fully customize the framework stack while still inheriting the configuration metadata described above.
+The bundled templates use a precompiled `/assets/pologen.css` containing the required Tailwind CSS, daisyUI, and Typography styles. The generator copies that stylesheet and `/assets/pologen.js` into the document root, so generated pages do not depend on Tailwind Play CDN at runtime. Custom assets are appended after these defaults.
 
 ## Image Handling
-Markdown image syntax (`![alt](photo.jpg)`) now renders responsive figures: Pologen resolves the image relative to the post folder, emits `photo-full.jpg` and `photo-thumb.jpg` with the configured sizes, and injects Tailwind-ready HTML that links the thumbnail to the full asset. Both variants are generated as JPEGs using imgscalr, and assets live next to the post's `index.html`, so they deploy automatically alongside the rest of the entry directory.
+Markdown image syntax (`![alt](photo.jpg)`) renders responsive figures: Pologen resolves the image relative to the post folder, emits `photo-full.jpg` and `photo-thumb.jpg` with the configured sizes, and injects HTML that opens the full asset. The output is always encoded as JPEG regardless of the supported source image format, so the file extension matches its content. Unchanged image sources are reused using SHA-256 fingerprints stored in `meta.toml`.
 
 ## Custom Assets
-If you need extra CSS or JS beyond the defaults, declare `[assets] stylesheets = ["..."]` or `scripts = ["..."]` in `config.toml`. The defaults already include Tailwind/daisyUI plus the image overlay helper (`/assets/pologen.js`), and your entries will load any additional assets you declare.
+If you need extra CSS or JS beyond the defaults, declare `[assets] stylesheets = ["..."]` or `scripts = ["..."]` in `config.toml`. Pologen keeps the bundled CSS and image-overlay/TOC helper and loads your assets afterwards.
 
 ## Sharing
-Entry pages include a share button that uses the Web Share API on iOS/Android, but still offers desktop-friendly controls (X.com intent link + copy-link helper). The share targets are built from an extensible list so additional services can be layered in later; for now the focus is on an X-compliant experience that respects X's posting requirements across browsers and devices.
+Entry pages include an X share button that opens an X.com posting intent in a new tab. Web Share API and copy-link controls are not currently provided.
 
 ## Content Layout
-Each post resides in its own directory beneath `paths.documentRoot` and must contain an `index.md`. The first line is treated as the title using the `title: Your Title` format; the remainder is parsed with JetBrains Markdown and rendered into HTML. The generator maintains a `meta.toml` alongside each entry that tracks `publishDate`, `updateDate`, and a body digest. The file is created on first run and the digest is refreshed whenever the Markdown content changes.
+Each post resides in its own directory beneath `paths.documentRoot` and must contain an `index.md`. Its first line must use the `title: Your Title` format; invalid entries stop generation with the offending path. The remainder is parsed with JetBrains Markdown and rendered into HTML. The generator maintains a `meta.toml` alongside each entry with publication/update dates, summaries, TOC data, source/configuration fingerprints, and generated-image fingerprints. The legacy `bodyMd5` key is retained for compatibility but contains a SHA-256 body digest. An unreadable `meta.toml` is reported and never overwritten automatically.
 
 ### Markdown heading rules
 - The top-of-page title is rendered as an `<h1>` from the `title:` line, so keep in-body headings at `##` (h2) or deeper. In-body `#` headings are intentionally excluded from TOC generation.
+- TOC entries are derived from rendered h2/h3 elements, ignore headings inside code fences, and receive unique anchors when headings repeat. On larger screens the TOC remains visible while the article scrolls.
 
 ## Generated Output
 - A fully rendered `index.html` is emitted per entry directory, including metadata, author links, and embedded Markdown content.
@@ -99,4 +101,5 @@ Each post resides in its own directory beneath `paths.documentRoot` and must con
 - `./gradlew build` compiles the Kotlin sources and run checks.
 - `./gradlew test` executes the Kotest suites covering configuration parsing, Markdown ingestion, HTML generation, RSS output, and date handling.
 - `./gradlew clean` removes build artefacts before regenerating outputs.
+- `npm ci && npm run build:css` regenerates the committed production stylesheet after template or style changes.
 - When iterating locally, re-run `shadowJar` and invoke the jar with your config to update HTML and XML artifacts in place.

@@ -2,19 +2,34 @@ package jp.yappo.pologen
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldNotContain
 import jp.yappo.pologen.domain.model.Entry
 import jp.yappo.pologen.infrastructure.rendering.SiteRenderer
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.createTempDirectory
 import kotlin.io.path.readText
+import javax.xml.parsers.DocumentBuilderFactory
 
 class RssSpec : FunSpec({
+    test("empty feed remains valid and omits an empty pubDate") {
+        val tmp = createTempDirectory("pologen-rss-empty-")
+        val out = tmp.resolve("feed.xml")
+
+        SiteRenderer().renderFeed(sampleConfiguration(), out, emptyList())
+
+        out.readText() shouldNotContain "<pubDate>"
+        DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(out.toFile())
+    }
+
     test("createRssXML writes RSS feed with items and escapes content") {
         val tmp: Path = createTempDirectory("pologen-rss-")
         val base = sampleConfiguration()
         val conf = base.copy(
-            site = base.site.copy(language = "ja")
+            site = base.site.copy(
+                language = "ja",
+                feedXmlUrl = "https://example.com/feed.xml?x=1&y=2",
+            )
         )
         val entry = Entry(
             filePath = tmp.resolve("dummy/index.md"),
@@ -40,5 +55,7 @@ class RssSpec : FunSpec({
         xml shouldContain "A&amp;B &lt; C"
         xml shouldContain "<description>Example Description</description>"
         xml shouldContain "<language>ja</language>"
+        xml shouldContain "feed.xml?x=1&amp;y=2"
+        DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(out.toFile())
     }
 })

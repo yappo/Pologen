@@ -30,6 +30,7 @@ dependencies {
     implementation("gg.jte:jte:3.2.1")
     implementation("gg.jte:jte-kotlin:3.2.1")
     implementation("org.imgscalr:imgscalr-lib:4.2")
+    implementation("org.jsoup:jsoup:1.22.1")
 }
 
 tasks.test {
