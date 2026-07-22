@@ -20,6 +20,7 @@ data class Configuration(
     val images: ImagesConfig = ImagesConfig(),
     val ogp: OgpConfig = OgpConfig(),
     val sidebar: SidebarConfig = SidebarConfig(),
+    val templates: TemplatesConfig = TemplatesConfig(),
     val links: Map<String, String> = emptyMap(),
 )
 
@@ -79,6 +80,11 @@ data class OgpConfig(
 @Serializable
 data class SidebarConfig(
     val recentEntryCount: Int = 10,
+)
+
+@Serializable
+data class TemplatesConfig(
+    val directory: String? = null,
 )
 
 @Serializable

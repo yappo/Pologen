@@ -34,7 +34,7 @@ class MarkdownService(
             createDraft(rootDirPath, filePath, newEntryPublishDate)
         }
         val renderConfigSha256 = sha256Hex(
-            "$ENTRY_CACHE_VERSION|${templateFingerprint()}|${configBaseDir.toAbsolutePath().normalize()}|$conf"
+            "$ENTRY_CACHE_VERSION|${templateFingerprint(conf, configBaseDir)}|${configBaseDir.toAbsolutePath().normalize()}|$conf"
         )
         val navigationSha256 = sha256Hex(
             drafts.joinToString("\n") { "${it.urlPath}|${it.title}|${it.publishDate}" }
@@ -203,9 +203,22 @@ class MarkdownService(
 
     private fun rssDate(value: String, zoneId: ZoneId): String = convertToRssDateTimeFormat(value, JST, zoneId)
 
-    private fun templateFingerprint(): String {
+    private fun templateFingerprint(conf: Configuration, configBaseDir: Path): String {
+        val customDirectory = conf.templates.directory?.let { configuredPath ->
+            val path = Path.of(configuredPath)
+            if (path.isAbsolute) path.normalize() else configBaseDir.resolve(path).normalize()
+        }
+        if (customDirectory != null) {
+            val fingerprints = TEMPLATE_NAMES.map { templateName ->
+                val templatePath = customDirectory.resolve(templateName)
+                require(templatePath.isRegularFile()) { "Custom template is missing: $templatePath" }
+                sha256Hex(templatePath)
+            }
+            return sha256Hex(fingerprints.joinToString("|"))
+        }
         val classLoader = MarkdownService::class.java.classLoader
-        val fingerprints = TEMPLATE_RESOURCES.map { resourcePath ->
+        val fingerprints = TEMPLATE_NAMES.map { templateName ->
+            val resourcePath = "templates/$templateName"
             val bytes = requireNotNull(classLoader.getResourceAsStream(resourcePath)) {
                 "Bundled template is missing: $resourcePath"
             }.use { it.readBytes() }
@@ -228,6 +241,6 @@ class MarkdownService(
     private companion object {
         val JST: ZoneId = ZoneId.of("Asia/Tokyo")
         val GMT: ZoneId = ZoneId.of("GMT")
-        val TEMPLATE_RESOURCES = listOf("templates/entry.kte", "templates/index.kte", "templates/feed.kte")
+        val TEMPLATE_NAMES = listOf("entry.kte", "index.kte", "feed.kte")
     }
 }

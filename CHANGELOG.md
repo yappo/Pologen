@@ -7,6 +7,7 @@
 - Decode WebP article images and emit correctly named JPEG artifacts.
 - Verify that unchanged builds preserve article, image, OGP, and metadata artifacts.
 - Run responsive mobile and sticky TOC regressions in Chromium.
+- Load a complete custom jte template directory relative to `config.toml`.
 - Generate unique TOC anchors from rendered headings and keep the TOC visible while scrolling.
 - Bundle production CSS instead of loading Tailwind Play CDN at runtime.
 - Add configuration validation, `-c` / `--config` CLI support, and CI on JDK 21.

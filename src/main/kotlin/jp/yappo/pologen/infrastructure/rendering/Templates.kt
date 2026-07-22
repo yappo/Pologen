@@ -1,8 +1,10 @@
 package jp.yappo.pologen.infrastructure.rendering
 
 import gg.jte.ContentType
+import gg.jte.CodeResolver
 import gg.jte.TemplateEngine
 import gg.jte.output.StringOutput
+import gg.jte.resolve.DirectoryCodeResolver
 import gg.jte.resolve.ResourceCodeResolver
 import jp.yappo.pologen.domain.config.Configuration
 import jp.yappo.pologen.domain.model.Entry
@@ -12,7 +14,9 @@ import org.apache.commons.text.StringEscapeUtils
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
+import java.nio.file.Path
 import java.util.LinkedHashMap
+import java.util.concurrent.ConcurrentHashMap
 
 data class AuthorMeta(
     val name: String,
@@ -89,6 +93,7 @@ object Templates {
 
     private val htmlTemplateEngine: TemplateEngine by lazy { createEngine(ContentType.Html) }
     private val plainTemplateEngine: TemplateEngine by lazy { createEngine(ContentType.Plain) }
+    private val customTemplateEngines = ConcurrentHashMap<TemplateEngineKey, TemplateEngine>()
 
     fun renderEntry(conf: Configuration, entry: Entry, recentEntries: List<RecentEntry>): String {
         val permalink = resolveDocumentUrl(conf.site.documentBaseUrl, entry.urlPath)
@@ -107,7 +112,7 @@ object Templates {
             rssUrl = conf.site.feedXmlUrl,
         )
         val output = StringOutput()
-        htmlTemplateEngine.render("entry.kte", model, output)
+        templateEngine(conf, ContentType.Html).render("entry.kte", model, output)
         return output.toString()
     }
 
@@ -129,7 +134,7 @@ object Templates {
             rssUrl = conf.site.feedXmlUrl,
         )
         val output = StringOutput()
-        htmlTemplateEngine.render("index.kte", model, output)
+        templateEngine(conf, ContentType.Html).render("index.kte", model, output)
         return output.toString()
     }
 
@@ -154,7 +159,7 @@ object Templates {
             siteDescriptionEscaped = StringEscapeUtils.escapeXml10(conf.site.description),
         )
         val output = StringOutput()
-        plainTemplateEngine.render("feed.kte", model, output)
+        templateEngine(conf, ContentType.Plain).render("feed.kte", model, output)
         return output.toString()
     }
 
@@ -178,11 +183,26 @@ object Templates {
         )
     }
 
-    private fun createEngine(contentType: ContentType): TemplateEngine {
+    private fun templateEngine(conf: Configuration, contentType: ContentType): TemplateEngine {
+        val customDirectory = conf.templates.directory?.let { Path.of(it).toAbsolutePath().normalize() }
+        if (customDirectory == null) {
+            return if (contentType == ContentType.Html) htmlTemplateEngine else plainTemplateEngine
+        }
+        val key = TemplateEngineKey(customDirectory, contentType)
+        return customTemplateEngines.computeIfAbsent(key) {
+            createEngine(contentType, customDirectory)
+        }
+    }
+
+    private fun createEngine(contentType: ContentType, customDirectory: Path? = null): TemplateEngine {
         val classDirectory = Files.createTempDirectory("pologen-jte-${contentType.name.lowercase()}").apply {
             toFile().deleteOnExit()
         }
-        val resolver = ResourceCodeResolver("templates")
+        val resolver: CodeResolver = if (customDirectory == null) {
+            ResourceCodeResolver("templates")
+        } else {
+            DirectoryCodeResolver(customDirectory)
+        }
         val parentClassLoader = Templates::class.java.classLoader
         return TemplateEngine.create(resolver, classDirectory, contentType, parentClassLoader)
     }
@@ -200,6 +220,11 @@ object Templates {
         )
     }
 }
+
+private data class TemplateEngineKey(
+    val directory: Path,
+    val contentType: ContentType,
+)
 
 data class ShareTarget(
     val name: String,

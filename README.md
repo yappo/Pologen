@@ -57,6 +57,9 @@ authorIconPath = "/absolute/or/relative/path/to/author_icon.png"
 stylesheets = ["/assets/custom.css"]
 scripts = ["/assets/custom.js"]
 
+[templates]
+directory = "templates"
+
 [sidebar]
 recentEntryCount = 10
 
@@ -72,9 +75,12 @@ recentEntryCount = 10
 - `images.*` governs thumbnail/full-size resizing and JPEG quality; `scaleMethod` accepts `speed`, `balanced`, `quality`, `ultra_quality`, or `automatic`. Widths must be positive and `jpegQuality` must be between `0.0` and `1.0`.
 - `sidebar.recentEntryCount` controls how many items appear in the “Recent posts” card; the `[links]` table is an insertion-order map rendered as external links in the sidebar (quote keys like `"Community Portal"` if they contain spaces).
 - The `[ogp]` table enables/disables image generation and configures the canvas, colors, and optional font/author icon assets. If `enabled = false`, OGP rendering and meta tags are skipped entirely.
+- `templates.directory` optionally selects a directory containing `entry.kte`, `index.kte`, and `feed.kte`. Relative paths resolve from `config.toml`; omitting the table keeps the bundled templates. Template files are trusted executable jte/Kotlin input.
 
 ## Styling Defaults
 The bundled templates use a precompiled `/assets/pologen.css` containing the required Tailwind CSS, daisyUI, and Typography styles. The generator copies that stylesheet and `/assets/pologen.js` into the document root, so generated pages do not depend on Tailwind Play CDN at runtime. Custom assets are appended after these defaults.
+
+To customize page structure, copy all three bundled templates from `src/main/resources/templates` into the configured `templates.directory` and edit them together. Generation fails before writing output when the directory or a required template is missing. Changing a custom template invalidates cached entry HTML.
 
 ## Image Handling
 Markdown image syntax (`![alt](photo.jpg)`) renders responsive figures: Pologen resolves JPEG, PNG, GIF, and WebP input relative to the post folder, emits `photo-full.jpg` and `photo-thumb.jpg` with the configured sizes, and injects HTML that opens the full asset. The output is always encoded as JPEG, so the file extension matches its content. Unchanged image sources are reused using SHA-256 fingerprints stored in `meta.toml`.

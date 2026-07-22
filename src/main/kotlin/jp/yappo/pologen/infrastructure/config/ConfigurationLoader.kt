@@ -4,6 +4,7 @@ import com.akuleshov7.ktoml.file.TomlFileReader
 import jp.yappo.pologen.application.port.ConfigurationReader
 import jp.yappo.pologen.domain.config.Configuration
 import java.net.URI
+import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.isRegularFile
 
@@ -14,7 +15,18 @@ class ConfigurationLoader(
         require(path.isRegularFile()) {
             "Configuration file does not exist: $path"
         }
-        return reader.decodeFromFile(Configuration.serializer(), path.toString()).also(::validateConfiguration)
+        val decoded = reader.decodeFromFile(Configuration.serializer(), path.toString())
+        val configBaseDir = path.toAbsolutePath().normalize().parent
+        val resolved = decoded.copy(
+            templates = decoded.templates.copy(
+                directory = decoded.templates.directory?.let { configuredPath ->
+                    configBaseDir.resolve(configuredPath).normalize().toString()
+                }
+            )
+        )
+        validateConfiguration(resolved)
+        validateTemplateDirectory(resolved)
+        return resolved
     }
 }
 
@@ -29,6 +41,9 @@ internal fun validateConfiguration(configuration: Configuration) {
     require(configuration.images.fullMaxWidth > 0) { "images.fullMaxWidth must be greater than zero" }
     require(configuration.images.jpegQuality in 0.0f..1.0f) { "images.jpegQuality must be between 0.0 and 1.0" }
     require(configuration.sidebar.recentEntryCount >= 0) { "sidebar.recentEntryCount must not be negative" }
+    require(configuration.templates.directory?.isNotBlank() != false) {
+        "templates.directory must not be blank"
+    }
     if (configuration.ogp.enabled) {
         require(configuration.ogp.width > 0) { "ogp.width must be greater than zero" }
         require(configuration.ogp.height > 0) { "ogp.height must be greater than zero" }
@@ -43,3 +58,17 @@ internal fun validateConfiguration(configuration: Configuration) {
         "site.documentBaseUrl must be an absolute HTTP or HTTPS URL without a query or fragment"
     }
 }
+
+private fun validateTemplateDirectory(configuration: Configuration) {
+    val directory = configuration.templates.directory?.let(Path::of) ?: return
+    require(Files.isDirectory(directory)) {
+        "templates.directory does not exist or is not a directory: $directory"
+    }
+    REQUIRED_TEMPLATES.forEach { templateName ->
+        require(Files.isRegularFile(directory.resolve(templateName))) {
+            "Custom template is missing: ${directory.resolve(templateName)}"
+        }
+    }
+}
+
+private val REQUIRED_TEMPLATES = listOf("entry.kte", "index.kte", "feed.kte")
