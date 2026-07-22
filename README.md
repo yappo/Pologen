@@ -102,4 +102,5 @@ Each post resides in its own directory beneath `paths.documentRoot` and must con
 - `./gradlew test` executes the Kotest suites covering configuration parsing, Markdown ingestion, HTML generation, RSS output, and date handling.
 - `./gradlew clean` removes build artefacts before regenerating outputs.
 - `npm ci && npm run build:css` regenerates the committed production stylesheet after template or style changes.
+- `npm run test:e2e` builds the shaded jar and verifies mobile overflow and desktop sticky TOC behavior in Chromium.
 - When iterating locally, re-run `shadowJar` and invoke the jar with your config to update HTML and XML artifacts in place.

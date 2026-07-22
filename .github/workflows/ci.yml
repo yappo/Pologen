@@ -22,8 +22,10 @@ jobs:
           node-version: "22"
           cache: npm
       - run: npm ci
+      - run: npx playwright install --with-deps chromium
       - run: npm run build:css
       - name: Verify generated CSS is committed
         run: git diff --exit-code -- src/main/resources/assets/pologen.css
       - run: ./gradlew test
       - run: ./gradlew shadowJar
+      - run: npm run test:e2e
