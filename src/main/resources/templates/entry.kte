@@ -34,9 +34,14 @@
                     ${model.site.title}
                 </a>
             </div>
-            @if (model.site.archiveUrl != null)
-                <a href="${model.site.archiveUrl}" class="text-sm text-slate-300 hover:text-white transition">Archive</a>
-            @endif
+            <nav class="flex items-center gap-4 text-sm">
+                @if (model.site.tagsUrl != null)
+                    <a href="${model.site.tagsUrl}" class="text-slate-300 hover:text-white transition">Tags</a>
+                @endif
+                @if (model.site.archiveUrl != null)
+                    <a href="${model.site.archiveUrl}" class="text-slate-300 hover:text-white transition">Archive</a>
+                @endif
+            </nav>
         </div>
     </header>
     <main class="flex-1">
@@ -51,6 +56,13 @@
                              class="h-8 w-8 rounded-full border border-slate-700"/>
                         <a href="${model.site.author.url}" class="hover:text-white transition">${model.site.author.name}</a>
                     </div>
+                    @if (model.tags.isNotEmpty())
+                        <div class="flex flex-wrap gap-2 pt-2">
+                        @for (tag in model.tags)
+                            <a href="${tag.url}" class="rounded-full border border-slate-700 bg-slate-900 px-3 py-1 text-xs text-sky-300 hover:border-slate-500 hover:text-sky-200 transition">#${tag.name}</a>
+                        @endfor
+                        </div>
+                    @endif
                 </div>
                 <div class="prose prose-invert max-w-none
                     [&_h2]:text-2xl [&_h2]:md:text-3xl [&_h2]:font-semibold [&_h2]:mt-10 [&_h2]:mb-6 [&_h2]:leading-tight
@@ -82,6 +94,21 @@
                         </div>
                     </div>
                 </div>
+                @if (model.relatedEntries.isNotEmpty())
+                    <div class="card bg-slate-900/60 border border-slate-800">
+                        <div class="card-body">
+                            <h3 class="card-title text-white text-base">Related posts</h3>
+                            <ul class="space-y-3 text-sm">
+                            @for (related in model.relatedEntries)
+                                <li>
+                                    <a href="${related.href}" class="block text-slate-300 hover:text-white transition">${related.title}</a>
+                                    <p class="text-xs text-slate-500">${related.publishDateLocal}</p>
+                                </li>
+                            @endfor
+                            </ul>
+                        </div>
+                    </div>
+                @endif
                 @if (model.toc.isNotEmpty())
                     <div data-testid="toc-card" class="card bg-slate-900/60 border border-slate-800 lg:sticky lg:top-4">
                         <div class="card-body">

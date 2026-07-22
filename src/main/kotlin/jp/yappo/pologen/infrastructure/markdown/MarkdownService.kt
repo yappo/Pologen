@@ -37,7 +37,9 @@ class MarkdownService(
             "$ENTRY_CACHE_VERSION|${templateFingerprint(conf, configBaseDir)}|${configBaseDir.toAbsolutePath().normalize()}|$conf"
         )
         val navigationSha256 = sha256Hex(
-            drafts.joinToString("\n") { "${it.urlPath}|${it.title}|${it.publishDate}" }
+            drafts.joinToString("\n") { draft ->
+                listOf(draft.urlPath, draft.title, draft.publishDate, draft.tags.joinToString(",")).joinToString("|")
+            }
         )
         return drafts.map { draft ->
             if (canReuse(draft, conf, renderConfigSha256, navigationSha256)) {
@@ -68,7 +70,15 @@ class MarkdownService(
             "The first line of $filePath must use the format: title: Your Title"
         }
         val title = titleLine.removePrefix("title: ").trim()
-        val markdown = lines.drop(1).joinToString("\n").trim()
+        val tagsLine = lines.getOrNull(1)?.takeIf { it.startsWith("tags:") }
+        val tags = tagsLine
+            ?.removePrefix("tags:")
+            ?.split(',')
+            ?.map(String::trim)
+            ?.filter(String::isNotBlank)
+            ?.distinct()
+            .orEmpty()
+        val markdown = lines.drop(if (tagsLine == null) 1 else 2).joinToString("\n").trim()
         val relativePath = rootDirPath.relativize(filePath.parent).toString().replace(File.separatorChar, '/')
         val urlPath = "/${if (relativePath.isBlank()) "" else "$relativePath/"}"
         val metaFilePath = filePath.parent.resolve("meta.toml")
@@ -82,6 +92,7 @@ class MarkdownService(
             sourceSha256 = sha256Hex(filePath),
             existingMeta = existingMeta,
             publishDate = existingMeta?.publishDate ?: newEntryPublishDate,
+            tags = tags,
         )
     }
 
@@ -100,6 +111,7 @@ class MarkdownService(
             meta.title != draft.title ||
             meta.summary == null ||
             meta.indexSummary == null ||
+            meta.tags != draft.tags ||
             !draft.filePath.parent.resolve("index.html").isRegularFile()
         ) {
             return false
@@ -141,6 +153,7 @@ class MarkdownService(
             ogpDescription = if (conf.ogp.enabled) meta.summary else null,
             toc = meta.toc,
             needsRender = false,
+            tags = meta.tags,
         )
     }
 
@@ -174,6 +187,7 @@ class MarkdownService(
             renderConfigSha256 = renderConfigSha256,
             navigationSha256 = navigationSha256,
             images = processedMarkdown.images,
+            tags = draft.tags,
             initialPublishDate = draft.publishDate,
             existingMeta = draft.existingMeta,
         )
@@ -198,6 +212,7 @@ class MarkdownService(
             ogpImageUrl = ogpMetadata.imageUrl,
             ogpDescription = ogpMetadata.description,
             toc = renderedMarkdown.toc,
+            tags = draft.tags,
         )
     }
 
@@ -228,7 +243,9 @@ class MarkdownService(
     }
 
     private fun templateNames(conf: Configuration): List<String> =
-        TEMPLATE_NAMES + if (conf.archive.enabled) listOf("archive.kte") else emptyList()
+        TEMPLATE_NAMES +
+            (if (conf.archive.enabled) listOf("archive.kte") else emptyList()) +
+            (if (conf.tags.enabled) listOf("tags.kte", "tag.kte") else emptyList())
 
     private data class EntryDraft(
         val filePath: Path,
@@ -239,6 +256,7 @@ class MarkdownService(
         val sourceSha256: String,
         val existingMeta: EntryMeta?,
         val publishDate: String,
+        val tags: List<String>,
     )
 
     private companion object {

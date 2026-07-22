@@ -31,6 +31,7 @@ class EntryMetaStore(
         renderConfigSha256: String,
         navigationSha256: String,
         images: List<EntryImageMeta>,
+        tags: List<String> = emptyList(),
         initialPublishDate: String = currentDateTimeInJst(),
         existingMeta: EntryMeta? = read(metaFilePath),
     ): EntryMetaState {
@@ -49,12 +50,14 @@ class EntryMetaStore(
             navigationSha256 = navigationSha256,
             generatorVersion = ENTRY_CACHE_VERSION,
             images = images,
+            tags = tags,
         )
         val textualContentChanged = existingMeta == null ||
             baseMeta.bodyMd5 != bodyDigest ||
             baseMeta.title != title ||
             baseMeta.summary != summary ||
             baseMeta.toc != toc ||
+            baseMeta.tags != tags ||
             (baseMeta.sourceSha256 != null && baseMeta.sourceSha256 != sourceSha256)
         val imageContentChanged = existingMeta?.generatorVersion == ENTRY_CACHE_VERSION && baseMeta.images != images
         val publicationContentChanged = textualContentChanged || imageContentChanged
@@ -63,7 +66,8 @@ class EntryMetaStore(
             baseMeta.renderConfigSha256 != renderConfigSha256 ||
             baseMeta.navigationSha256 != navigationSha256 ||
             baseMeta.generatorVersion != ENTRY_CACHE_VERSION ||
-            baseMeta.images != images
+            baseMeta.images != images ||
+            baseMeta.tags != tags
 
         val meta = if (metadataChanged) {
             val updated = baseMeta.copy(
@@ -77,6 +81,7 @@ class EntryMetaStore(
                 navigationSha256 = navigationSha256,
                 generatorVersion = ENTRY_CACHE_VERSION,
                 images = images,
+                tags = tags,
                 updateDate = if (publicationContentChanged) currentDateTime else baseMeta.updateDate,
             )
             writeAtomically(metaFilePath, updated)
@@ -135,7 +140,7 @@ class EntryMetaStore(
     }
 }
 
-internal const val ENTRY_CACHE_VERSION: Int = 1
+internal const val ENTRY_CACHE_VERSION: Int = 2
 
 data class EntryMetaState(
     val meta: EntryMeta,
