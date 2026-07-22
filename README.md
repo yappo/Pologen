@@ -105,7 +105,7 @@ If you need extra CSS or JS beyond the defaults, declare `[assets] stylesheets =
 Entry pages include an X share button that opens an X.com posting intent in a new tab. Web Share API and copy-link controls are not currently provided.
 
 ## Content Layout
-Each post resides in its own directory beneath `paths.documentRoot` and must contain an `index.md`. Its first line must use the `title: Your Title` format; invalid entries stop generation with the offending path. The remainder is parsed with JetBrains Markdown and rendered into HTML. The generator maintains a `meta.toml` alongside each entry with publication/update dates, summaries, TOC data, source/configuration fingerprints, and generated-image fingerprints. The legacy `bodyMd5` key is retained for compatibility but contains a SHA-256 body digest. An unreadable `meta.toml` is reported and never overwritten automatically.
+Each post resides in its own directory beneath `paths.documentRoot` and must contain an `index.md`. Its first line contains the article title. Both the original plain-title form (`Your Title`) and the explicit `title: Your Title` form are supported, so existing posts do not need migration. An empty title stops generation with the offending path. The remainder is parsed with JetBrains Markdown and rendered into HTML. The generator maintains a `meta.toml` alongside each entry with publication/update dates, summaries, TOC data, source/configuration fingerprints, and generated-image fingerprints. The legacy `bodyMd5` key is retained for compatibility but contains a SHA-256 body digest. An unreadable `meta.toml` is reported and never overwritten automatically.
 
 When tags are used, put a comma-separated declaration directly on the second line. Duplicate names within an entry are removed while display spelling is preserved:
 
@@ -117,7 +117,7 @@ Article body starts here.
 ```
 
 ### Markdown heading rules
-- The top-of-page title is rendered as an `<h1>` from the `title:` line, so keep in-body headings at `##` (h2) or deeper. In-body `#` headings are intentionally excluded from TOC generation.
+- The top-of-page title is rendered as an `<h1>` from the first line, so keep in-body headings at `##` (h2) or deeper. In-body `#` headings are intentionally excluded from TOC generation.
 - TOC entries are derived from rendered h2/h3 elements, ignore headings inside code fences, and receive unique anchors when headings repeat. On larger screens the TOC remains visible while the article scrolls.
 
 ## Generated Output
