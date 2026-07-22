@@ -66,10 +66,20 @@ class MarkdownService(
     private fun createDraft(rootDirPath: Path, filePath: Path, newEntryPublishDate: String): EntryDraft {
         val lines = Files.readAllLines(filePath)
         val titleLine = lines.firstOrNull()
-        require(titleLine?.startsWith("title: ") == true && titleLine.removePrefix("title: ").isNotBlank()) {
-            "The first line of $filePath must use the format: title: Your Title"
+        val title = requireNotNull(
+            titleLine
+                ?.let { line ->
+                    when {
+                        line.startsWith("title: ") -> line.removePrefix("title: ")
+                        line == "title:" -> ""
+                        else -> line
+                    }
+                }
+                ?.trim()
+                ?.takeIf(String::isNotBlank)
+        ) {
+            "The first line of $filePath must contain an article title, either as plain text or as: title: Your Title"
         }
-        val title = titleLine.removePrefix("title: ").trim()
         val tagsLine = lines.getOrNull(1)?.takeIf { it.startsWith("tags:") }
         val tags = tagsLine
             ?.removePrefix("tags:")

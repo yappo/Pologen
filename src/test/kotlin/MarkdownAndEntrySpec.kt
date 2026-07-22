@@ -91,9 +91,20 @@ class MarkdownAndEntrySpec : FunSpec({
         list.map { it.urlPath } shouldContainAll listOf("/a/", "/b/")
     }
 
-    test("entry requires an explicit title line") {
+    test("legacy plain first-line title remains supported") {
         val root = createTempDirectory("pologen-title-")
-        root.resolve("index.md").writeText("# Missing title prefix\nBody")
+        root.resolve("index.md").writeText("Legacy article title\ntags: Legacy, Kotlin\n\nBody")
+
+        val entry = MarkdownService().collectEntries(sampleConfiguration(), root, root, root).single()
+
+        entry.title shouldBe "Legacy article title"
+        entry.tags shouldBe listOf("Legacy", "Kotlin")
+        entry.markdown shouldBe "Body"
+    }
+
+    test("entry rejects an empty first-line title") {
+        val root = createTempDirectory("pologen-empty-title-")
+        root.resolve("index.md").writeText("\nBody")
 
         shouldThrow<IllegalArgumentException> {
             MarkdownService().collectEntries(sampleConfiguration(), root, root, root)
