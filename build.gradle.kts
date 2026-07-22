@@ -31,6 +31,7 @@ dependencies {
     implementation("gg.jte:jte-kotlin:3.2.1")
     implementation("org.imgscalr:imgscalr-lib:4.2")
     implementation("org.jsoup:jsoup:1.22.1")
+    implementation("com.twelvemonkeys.imageio:imageio-webp:3.13.1")
 }
 
 tasks.test {
