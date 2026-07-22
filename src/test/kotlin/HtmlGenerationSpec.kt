@@ -23,7 +23,7 @@ class HtmlGenerationSpec : FunSpec({
             publishDate = convertToRssDateTimeFormat("2025-01-02 03:04:05", ZoneId.of("Asia/Tokyo"), ZoneId.of("GMT")),
             publishDateLocal = convertToRssDateTimeFormat("2025-01-02 03:04:05", ZoneId.of("Asia/Tokyo"), ZoneId.of("Asia/Tokyo")),
             markdown = "Hello <em>world</em>",
-            html = "<p>Hello <em>world</em></p>",
+            html = "<p>Hello <em>world</em> and <a href=\"https://example.com/reference\">reference</a></p>",
             body = "Hello world",
         )
         val conf = sampleConfiguration()
@@ -33,6 +33,10 @@ class HtmlGenerationSpec : FunSpec({
 
         val written = dir.resolve("index.html").readText()
         written shouldContain "Hello <em>world</em>"
+        written shouldContain "[&_a]:text-sky-300"
+        written shouldContain "[&_a]:underline"
+        written shouldContain "[&_a:focus-visible]:ring-2"
+        written shouldContain "<a href=\"https://example.com/reference\">reference</a>"
         written shouldContain entry.title
         written shouldContain "cdn.tailwindcss.com"
         written shouldContain "daisyui"
