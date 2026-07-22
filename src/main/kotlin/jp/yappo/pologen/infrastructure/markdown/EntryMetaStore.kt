@@ -52,16 +52,21 @@ class EntryMetaStore(
             images = images,
             tags = tags,
         )
-        val textualContentChanged = existingMeta == null ||
+        val derivedTextChanged = existingMeta == null ||
             baseMeta.bodyMd5 != bodyDigest ||
             baseMeta.title != title ||
             baseMeta.summary != summary ||
             baseMeta.toc != toc ||
+            baseMeta.tags != tags
+        val sourceContentChanged = existingMeta == null ||
+            baseMeta.title != title ||
             baseMeta.tags != tags ||
             (baseMeta.sourceSha256 != null && baseMeta.sourceSha256 != sourceSha256)
-        val imageContentChanged = existingMeta?.generatorVersion == ENTRY_CACHE_VERSION && baseMeta.images != images
-        val publicationContentChanged = textualContentChanged || imageContentChanged
-        val metadataChanged = publicationContentChanged ||
+        val imageContentChanged = existingMeta?.generatorVersion == ENTRY_CACHE_VERSION &&
+            baseMeta.images.map { it.sourcePath to it.sourceSha256 } !=
+            images.map { it.sourcePath to it.sourceSha256 }
+        val publicationContentChanged = sourceContentChanged || imageContentChanged
+        val metadataChanged = derivedTextChanged || publicationContentChanged ||
             baseMeta.indexSummary != indexSummary ||
             baseMeta.renderConfigSha256 != renderConfigSha256 ||
             baseMeta.navigationSha256 != navigationSha256 ||
@@ -94,7 +99,7 @@ class EntryMetaStore(
 
         return EntryMetaState(
             meta = meta,
-            entryChanged = textualContentChanged || existingMeta?.renderConfigSha256 != renderConfigSha256,
+            entryChanged = derivedTextChanged || existingMeta?.renderConfigSha256 != renderConfigSha256,
         )
     }
 
