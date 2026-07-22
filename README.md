@@ -77,7 +77,7 @@ recentEntryCount = 10
 The bundled templates use a precompiled `/assets/pologen.css` containing the required Tailwind CSS, daisyUI, and Typography styles. The generator copies that stylesheet and `/assets/pologen.js` into the document root, so generated pages do not depend on Tailwind Play CDN at runtime. Custom assets are appended after these defaults.
 
 ## Image Handling
-Markdown image syntax (`![alt](photo.jpg)`) renders responsive figures: Pologen resolves the image relative to the post folder, emits `photo-full.jpg` and `photo-thumb.jpg` with the configured sizes, and injects HTML that opens the full asset. The output is always encoded as JPEG regardless of the supported source image format, so the file extension matches its content. Unchanged image sources are reused using SHA-256 fingerprints stored in `meta.toml`.
+Markdown image syntax (`![alt](photo.jpg)`) renders responsive figures: Pologen resolves JPEG, PNG, GIF, and WebP input relative to the post folder, emits `photo-full.jpg` and `photo-thumb.jpg` with the configured sizes, and injects HTML that opens the full asset. The output is always encoded as JPEG, so the file extension matches its content. Unchanged image sources are reused using SHA-256 fingerprints stored in `meta.toml`.
 
 ## Custom Assets
 If you need extra CSS or JS beyond the defaults, declare `[assets] stylesheets = ["..."]` or `scripts = ["..."]` in `config.toml`. Pologen keeps the bundled CSS and image-overlay/TOC helper and loads your assets afterwards.

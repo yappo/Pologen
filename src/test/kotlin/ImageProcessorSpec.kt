@@ -8,6 +8,7 @@ import java.awt.Color
 import java.awt.image.BufferedImage
 import java.nio.file.Files
 import java.nio.file.attribute.FileTime
+import java.util.Base64
 import javax.imageio.ImageIO
 import kotlin.io.path.createTempDirectory
 import kotlin.io.path.readBytes
@@ -50,5 +51,30 @@ class ImageProcessorSpec : FunSpec({
 
         (changed.images.single().sourceSha256 == artifact.sourceSha256) shouldBe false
         (Files.getLastModifiedTime(dir.resolve(artifact.fullPath)) == oldTime) shouldBe false
+    }
+
+    test("WebP input produces JPEG artifacts") {
+        val dir = createTempDirectory("pologen-webp-")
+        val source = dir.resolve("sample.webp")
+        Files.write(
+            source,
+            Base64.getDecoder().decode(
+                "UklGRiIAAABXRUJQVlA4IBYAAAAwAQCdASoBAAEAAUAmJaQAA3AA/vuUAAA="
+            )
+        )
+
+        val result = MarkdownImageProcessor().process(
+            "![sample](sample.webp)",
+            dir,
+            ImagesConfig(),
+        )
+
+        val artifact = result.images.single()
+        artifact.fullPath shouldBe "sample-full.jpg"
+        artifact.thumbPath shouldBe "sample-thumb.jpg"
+        dir.resolve(artifact.fullPath).readBytes().take(2) shouldBe
+            listOf(0xff.toByte(), 0xd8.toByte())
+        dir.resolve(artifact.thumbPath).readBytes().take(2) shouldBe
+            listOf(0xff.toByte(), 0xd8.toByte())
     }
 })
